@@ -5,6 +5,7 @@ from __future__ import annotations
 from .easyread import EasyReadLine, EasyReadResult
 from .pipeline import SimplifyResult
 from .readability import Readability
+from .semantic import SemanticReport
 from .verify import FaithfulnessReport
 
 
@@ -55,4 +56,12 @@ def easyread_dict(res: EasyReadResult) -> dict:
         "source_readability": readability_dict(res.source_readability),
         "output_readability": readability_dict(res.output_readability),
         "faithfulness": faithfulness_dict(res.faithfulness),
+    }
+
+
+def semantic_dict(rep: SemanticReport) -> dict:
+    return {
+        "available": rep.available,
+        "faithful": rep.faithful,
+        "issues": [{"type": i.type, "detail": i.detail} for i in rep.issues],
     }

@@ -25,7 +25,14 @@ from clara.easyread import easy_read  # noqa: E402
 from clara.llm import get_provider  # noqa: E402
 from clara.pipeline import simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
-from clara.serialize import easyread_dict, faithfulness_dict, readability_dict, result_dict  # noqa: E402
+from clara.semantic import semantic_check  # noqa: E402
+from clara.serialize import (  # noqa: E402
+    easyread_dict,
+    faithfulness_dict,
+    readability_dict,
+    result_dict,
+    semantic_dict,
+)
 from clara.verify import verify  # noqa: E402
 
 INDEX = Path(__file__).resolve().parent / "index.html"
@@ -82,6 +89,11 @@ class Handler(BaseHTTPRequestHandler):
                 provider = get_provider(data.get("provider"))
                 res = easy_read(data.get("text", ""), provider=provider, lang=data.get("lang", "en"))
                 self._send_json(easyread_dict(res))
+            elif self.path == "/semantic":
+                provider = get_provider(data.get("provider"))
+                rep = semantic_check(data.get("source", ""), data.get("output", ""),
+                                     provider=provider, lang=data.get("lang", "en"))
+                self._send_json(semantic_dict(rep))
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as e:  # keep the dev server up; surface the message to the UI

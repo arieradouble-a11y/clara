@@ -23,7 +23,14 @@ from clara.easyread import easy_read
 from clara.llm import get_provider
 from clara.pipeline import simplify_text
 from clara.readability import analyze
-from clara.serialize import easyread_dict, faithfulness_dict, readability_dict, result_dict
+from clara.semantic import semantic_check
+from clara.serialize import (
+    easyread_dict,
+    faithfulness_dict,
+    readability_dict,
+    result_dict,
+    semantic_dict,
+)
 from clara.verify import verify
 
 app = FastAPI(title="Clara", description="Verified plain-language rewriting.")
@@ -47,6 +54,13 @@ class VerifyRequest(BaseModel):
 
 class EasyReadRequest(BaseModel):
     text: str
+    lang: str = "en"
+    provider: str | None = None
+
+
+class SemanticRequest(BaseModel):
+    source: str
+    output: str
     lang: str = "en"
     provider: str | None = None
 
@@ -78,6 +92,12 @@ def verify_endpoint(req: VerifyRequest) -> dict:
 def easyread_endpoint(req: EasyReadRequest) -> dict:
     provider = get_provider(req.provider) if req.provider else None
     return easyread_dict(easy_read(req.text, provider=provider, lang=req.lang))
+
+
+@app.post("/semantic")
+def semantic_endpoint(req: SemanticRequest) -> dict:
+    provider = get_provider(req.provider) if req.provider else None
+    return semantic_dict(semantic_check(req.source, req.output, provider=provider, lang=req.lang))
 
 
 @app.get("/health")

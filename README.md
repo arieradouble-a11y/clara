@@ -31,6 +31,14 @@ each one survived in the output. A mismatch is a reproducible signal, not an
 opinion. Negations, obligations (`must`/`shall`), and conditions (`if`/`unless`)
 are inventoried too and raised as review warnings.
 
+On top of that deterministic layer, an **optional LLM semantic check**
+(`clara/semantic.py`; `--semantic` on the CLI, or the "Run AI semantic check"
+button) compares source and output for meaning drift the regexes can't see — a
+weakened obligation, a changed condition, an added implication — and returns
+typed issues (omission / addition / contradiction / distortion). It costs a model
+call, so it is opt-in, and it degrades to "unavailable" rather than guessing when
+no capable provider answers.
+
 ### 2. Human-in-the-loop by principle
 The Easy Read standard (Inclusion Europe) asks that simplified text be validated
 by the people it is for. Clara is built to **assist authors and reviewers**, not
@@ -231,7 +239,7 @@ Adding a language is one self-contained file plus a line in
 - [x] Easy Read: pictogram pairing (ARASAAC), one idea per line
 - [ ] Ingestion: PDF / DOCX / HTML / URL with structure preservation
 - [ ] Accessible output: tagged PDF, semantic HTML
-- [ ] LLM-based semantic faithfulness check (beyond deterministic numbers/dates)
+- [x] LLM-based semantic faithfulness check (opt-in, on top of deterministic)
 - [x] Language packs: English + Russian (add one in `clara/lang/`)
 - [ ] Review workflow: versions, comments, sign-off by validators
 

@@ -173,6 +173,11 @@
     </div>
 
     <div id="faith"></div>
+    <div id="semantic" style="margin-top:16px"></div>
+    <div style="margin-top:12px">
+      <button class="btn secondary" id="run-semantic">Run AI semantic check</button>
+      <span class="hint">Optional — uses the configured model to catch meaning drift the deterministic check can't see.</span>
+    </div>
     <div class="approve-row">
       <button class="btn" id="approve">Approve for publication</button>
       <span id="approved-note" class="approved hidden">✓ Approved by reviewer</span>
@@ -190,6 +195,7 @@
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let lastResult = null;  // {source, output, lang} for the optional AI semantic check
 
 function setMode(mode) {
   const isSimplify = mode === "simplify";
@@ -252,6 +258,8 @@ function renderResult({ original, output, srcR, outR, faith, labelB }) {
   $("labelB").textContent = labelB;
   $("metrics").innerHTML = metricsHtml(srcR, outR);
   renderFaith(faith);
+  lastResult = { source: original, output, lang: $("lang").value };
+  $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
   $("results").classList.remove("hidden");
@@ -270,6 +278,8 @@ function renderEasyRead(d) {
     return `<div class="er-line">${pic}<div class="er-text">${escapeHtml(ln.text)}</div></div>`;
   }).join("");
   renderFaith(d.faithfulness);
+  lastResult = { source: d.original, output: d.lines.map((l) => l.text).join("\n"), lang: $("lang").value };
+  $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
   $("results").classList.remove("hidden");
@@ -325,6 +335,37 @@ $("run-check").onclick = async () => {
 $("approve").onclick = () => {
   $("approved-note").classList.remove("hidden");
   $("approve").disabled = true;
+};
+
+function renderSemantic(d) {
+  if (!d.available) {
+    $("semantic").innerHTML = `<div class="faith review"><p class="title">AI check unavailable</p>`
+      + `<p>Configure a model provider (set CLARA_PROVIDER on the server) to run the semantic check.</p></div>`;
+    return;
+  }
+  if (d.faithful && d.issues.length === 0) {
+    $("semantic").innerHTML = `<div class="faith ok"><p class="title">✓ AI check: faithful</p>`
+      + `<p>No meaning drift detected.</p></div>`;
+    return;
+  }
+  const items = d.issues.map((i) =>
+    `<li><strong>${escapeHtml(i.type)}:</strong> ${escapeHtml(i.detail)}</li>`).join("");
+  $("semantic").innerHTML = `<div class="faith review"><p class="title">⚠ AI check: review</p><ul>${items}</ul></div>`;
+}
+
+$("run-semantic").onclick = async () => {
+  if (!lastResult) return;
+  clearError();
+  $("run-semantic").disabled = true;
+  $("semantic").innerHTML = `<p class="hint">Checking with the model…</p>`;
+  try {
+    renderSemantic(await post("/semantic", lastResult));
+  } catch (e) {
+    showError(e.message);
+    $("semantic").innerHTML = "";
+  } finally {
+    $("run-semantic").disabled = false;
+  }
 };
 
 $("ex-simplify").onclick = () => {

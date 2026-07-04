@@ -10,6 +10,7 @@ from .easyread import EasyReadResult, easy_read
 from .facts import inventory
 from .pipeline import SimplifyResult, simplify_text
 from .readability import Readability, analyze
+from .semantic import SemanticReport, semantic_check
 from .verify import FaithfulnessReport, verify
 
 __version__ = "0.1.0"
@@ -23,6 +24,8 @@ __all__ = [
     "Readability",
     "verify",
     "FaithfulnessReport",
+    "semantic_check",
+    "SemanticReport",
     "inventory",
     "__version__",
 ]

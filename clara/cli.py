@@ -18,6 +18,7 @@ from .easyread import easy_read
 from .llm import get_provider
 from .pipeline import simplify_text
 from .readability import analyze
+from .semantic import semantic_check
 from .serialize import easyread_dict, readability_dict, result_dict
 
 
@@ -65,6 +66,17 @@ def cmd_simplify(args) -> int:
             print("  Invented dates:", ", ".join(fr.invented_dates))
         for w in fr.warnings:
             print("  ! ", w)
+
+    if args.semantic:
+        rep = semantic_check(res.original, res.simplified, provider=provider, lang=args.lang)
+        if not rep.available:
+            print("AI check    : unavailable (configure a real provider)")
+        elif rep.faithful and not rep.issues:
+            print("AI check    : faithful (no meaning drift)")
+        else:
+            print("AI check    : REVIEW")
+            for i in rep.issues:
+                print(f"  - {i.type}: {i.detail}")
     return 0
 
 
@@ -120,6 +132,7 @@ def main(argv=None) -> int:
     s.add_argument("--grade", type=int, default=None, help="Target grade for --level grade")
     s.add_argument("--lang", default="en", help="Language pack (en, ru)")
     s.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
+    s.add_argument("--semantic", action="store_true", help="Also run an LLM semantic faithfulness check")
     s.add_argument("--json", action="store_true", help="Machine-readable output")
     s.set_defaults(func=cmd_simplify)
 
