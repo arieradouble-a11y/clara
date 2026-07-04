@@ -15,11 +15,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 from clara.easyread import easy_read
+from clara.export import document_html, document_pdf
 from clara.llm import get_provider
 from clara.pipeline import simplify_text
 from clara.readability import analyze
@@ -65,6 +66,16 @@ class SemanticRequest(BaseModel):
     provider: str | None = None
 
 
+class ExportRequest(BaseModel):
+    format: str = "html"          # "html" | "pdf"
+    kind: str = "text"            # "text" | "easyread"
+    title: str = "Plain-language document"
+    lang: str = "en"
+    text: str | None = None
+    lines: list[dict] | None = None
+    footer: str | None = None
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     if _INDEX.exists():
@@ -98,6 +109,21 @@ def easyread_endpoint(req: EasyReadRequest) -> dict:
 def semantic_endpoint(req: SemanticRequest) -> dict:
     provider = get_provider(req.provider) if req.provider else None
     return semantic_dict(semantic_check(req.source, req.output, provider=provider, lang=req.lang))
+
+
+@app.post("/export")
+def export_endpoint(req: ExportRequest):
+    doc = document_html(title=req.title, lang=req.lang, kind=req.kind,
+                        text=req.text, lines=req.lines, footer=req.footer)
+    if req.format == "pdf":
+        try:
+            pdf = document_pdf(doc)
+        except RuntimeError as e:
+            return JSONResponse({"error": str(e)}, status_code=501)
+        return Response(pdf, media_type="application/pdf",
+                        headers={"Content-Disposition": 'attachment; filename="clara.pdf"'})
+    return Response(doc, media_type="text/html; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="clara.html"'})
 
 
 @app.get("/health")

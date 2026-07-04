@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # make 'clara' importable
 
 from clara.easyread import easy_read  # noqa: E402
+from clara.export import document_html, document_pdf  # noqa: E402
 from clara.llm import get_provider  # noqa: E402
 from clara.pipeline import simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
@@ -43,6 +44,14 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_bytes(self, body: bytes, content_type: str, filename: str):
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -94,6 +103,18 @@ class Handler(BaseHTTPRequestHandler):
                 rep = semantic_check(data.get("source", ""), data.get("output", ""),
                                      provider=provider, lang=data.get("lang", "en"))
                 self._send_json(semantic_dict(rep))
+            elif self.path == "/export":
+                doc = document_html(title=data.get("title", "Plain-language document"),
+                                    lang=data.get("lang", "en"), kind=data.get("kind", "text"),
+                                    text=data.get("text"), lines=data.get("lines"),
+                                    footer=data.get("footer"))
+                if data.get("format") == "pdf":
+                    try:
+                        self._send_bytes(document_pdf(doc), "application/pdf", "clara.pdf")
+                    except RuntimeError as e:
+                        self._send_json({"error": str(e)}, 501)
+                else:
+                    self._send_bytes(doc.encode("utf-8"), "text/html; charset=utf-8", "clara.html")
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as e:  # keep the dev server up; surface the message to the UI

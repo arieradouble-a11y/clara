@@ -15,11 +15,12 @@ import json
 import sys
 
 from .easyread import easy_read
+from .export import document_html
 from .llm import get_provider
 from .pipeline import simplify_text
 from .readability import analyze
 from .semantic import semantic_check
-from .serialize import easyread_dict, readability_dict, result_dict
+from .serialize import easyread_dict, easyread_line_dict, readability_dict, result_dict
 
 
 def _read_input(args) -> str:
@@ -40,6 +41,11 @@ def cmd_simplify(args) -> int:
     res = simplify_text(_read_input(args), level=args.level, provider=provider,
                         grade=args.grade, lang=args.lang)
     fr = res.faithfulness
+
+    if args.html:
+        print(document_html(kind="text", text=res.simplified, lang=args.lang,
+                            footer="Simplified with Clara — assistive, not authoritative."))
+        return 0
 
     if args.json:
         print(json.dumps(result_dict(res), ensure_ascii=False, indent=2))
@@ -84,6 +90,12 @@ def cmd_easyread(args) -> int:
     provider = get_provider(args.provider)
     res = easy_read(_read_input(args), provider=provider, lang=args.lang,
                     with_pictograms=not args.no_pictograms)
+
+    if args.html:
+        lines = [easyread_line_dict(ln) for ln in res.lines]
+        print(document_html(kind="easyread", lines=lines, lang=args.lang, title="Easy Read document",
+                            footer="Simplified with Clara — assistive, not authoritative."))
+        return 0
 
     if args.json:
         print(json.dumps(easyread_dict(res), ensure_ascii=False, indent=2))
@@ -133,6 +145,7 @@ def main(argv=None) -> int:
     s.add_argument("--lang", default="en", help="Language pack (en, ru)")
     s.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     s.add_argument("--semantic", action="store_true", help="Also run an LLM semantic faithfulness check")
+    s.add_argument("--html", action="store_true", help="Output an accessible HTML document")
     s.add_argument("--json", action="store_true", help="Machine-readable output")
     s.set_defaults(func=cmd_simplify)
 
@@ -141,6 +154,7 @@ def main(argv=None) -> int:
     e.add_argument("--lang", default="en", help="Language pack (en, ru) — also the ARASAAC locale")
     e.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     e.add_argument("--no-pictograms", action="store_true", help="Skip pictogram lookup (offline)")
+    e.add_argument("--html", action="store_true", help="Output an accessible HTML document")
     e.add_argument("--json", action="store_true", help="Machine-readable output")
     e.set_defaults(func=cmd_easyread)
 

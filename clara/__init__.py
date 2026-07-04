@@ -7,6 +7,7 @@ Public API:
     print(result.faithfulness.ok)
 """
 from .easyread import EasyReadResult, easy_read
+from .export import document_html, document_pdf
 from .facts import inventory
 from .pipeline import SimplifyResult, simplify_text
 from .readability import Readability, analyze
@@ -26,6 +27,8 @@ __all__ = [
     "FaithfulnessReport",
     "semantic_check",
     "SemanticReport",
+    "document_html",
+    "document_pdf",
     "inventory",
     "__version__",
 ]

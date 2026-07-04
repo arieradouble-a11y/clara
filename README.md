@@ -159,6 +159,27 @@ planned improvement.
 
 ---
 
+## Accessible output
+
+Close the loop: export the result as an accessible document.
+
+```bash
+clara simplify --html --file notice.txt > notice.html
+clara easyread --html --lang ru --file уведомление.txt > easyread.html
+```
+
+- **Semantic HTML** — pure Python, no dependencies, always available: correct
+  `lang`, a single `<h1>`, real paragraphs, and for Easy Read an ordered list of
+  picture + text rows with `alt` text. Good contrast and spacing. In the web UI,
+  "Download accessible HTML".
+- **Tagged PDF (PDF/UA-1)** — via WeasyPrint (`pip install "clara[pdf]"`;
+  "Download tagged PDF" in the UI). If WeasyPrint or its system libraries aren't
+  present, the endpoint returns a clear message instead of a broken file — the
+  HTML stays the reliable path, and browsers produce a tagged PDF when you print
+  the semantic HTML.
+
+---
+
 ## LLM providers
 
 Provider-agnostic. Set `CLARA_PROVIDER` (default `mock`, which runs offline):
@@ -237,8 +258,8 @@ Adding a language is one self-contained file plus a line in
 - [x] Reference UI: source ↔ simplified side by side, drift highlighted, approve
       (zero-dependency dev server; a full Next.js app is a later evolution)
 - [x] Easy Read: pictogram pairing (ARASAAC), one idea per line
+- [x] Accessible output: semantic HTML (always) + tagged PDF/UA via WeasyPrint
 - [ ] Ingestion: PDF / DOCX / HTML / URL with structure preservation
-- [ ] Accessible output: tagged PDF, semantic HTML
 - [x] LLM-based semantic faithfulness check (opt-in, on top of deterministic)
 - [x] Language packs: English + Russian (add one in `clara/lang/`)
 - [ ] Review workflow: versions, comments, sign-off by validators

@@ -178,6 +178,11 @@
       <button class="btn secondary" id="run-semantic">Run AI semantic check</button>
       <span class="hint">Optional — uses the configured model to catch meaning drift the deterministic check can't see.</span>
     </div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <button class="btn secondary" id="dl-html">Download accessible HTML</button>
+      <button class="btn secondary" id="dl-pdf">Download tagged PDF</button>
+      <span class="hint">Semantic document — correct language, headings, and alt text.</span>
+    </div>
     <div class="approve-row">
       <button class="btn" id="approve">Approve for publication</button>
       <span id="approved-note" class="approved hidden">✓ Approved by reviewer</span>
@@ -196,6 +201,8 @@ const $ = (id) => document.getElementById(id);
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 let lastResult = null;  // {source, output, lang} for the optional AI semantic check
+let lastExport = null;  // {kind, lang, title, text|lines, footer} for accessible export
+const EXPORT_FOOTER = "Simplified with Clara — assistive, not authoritative. Verify against the original.";
 
 function setMode(mode) {
   const isSimplify = mode === "simplify";
@@ -259,6 +266,8 @@ function renderResult({ original, output, srcR, outR, faith, labelB }) {
   $("metrics").innerHTML = metricsHtml(srcR, outR);
   renderFaith(faith);
   lastResult = { source: original, output, lang: $("lang").value };
+  lastExport = { kind: "text", lang: $("lang").value, title: "Plain-language document",
+                 text: output, footer: EXPORT_FOOTER };
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
@@ -279,6 +288,8 @@ function renderEasyRead(d) {
   }).join("");
   renderFaith(d.faithfulness);
   lastResult = { source: d.original, output: d.lines.map((l) => l.text).join("\n"), lang: $("lang").value };
+  lastExport = { kind: "easyread", lang: $("lang").value, title: "Easy Read document",
+                 lines: d.lines, footer: EXPORT_FOOTER };
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
@@ -367,6 +378,34 @@ $("run-semantic").onclick = async () => {
     $("run-semantic").disabled = false;
   }
 };
+
+async function download(format) {
+  if (!lastExport) return;
+  clearError();
+  try {
+    const res = await fetch("/export", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...lastExport, format }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({ error: "Export failed (HTTP " + res.status + ")" }));
+      throw new Error(e.error || ("HTTP " + res.status));
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = format === "pdf" ? "clara.pdf" : "clara.html";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    showError(e.message);
+  }
+}
+$("dl-html").onclick = () => download("html");
+$("dl-pdf").onclick = () => download("pdf");
 
 $("ex-simplify").onclick = () => {
   $("src").value = "Applicants must submit Form 27B in duplicate no later than 2024-01-31, "
