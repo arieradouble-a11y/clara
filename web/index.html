@@ -94,9 +94,18 @@
        negations are checked so nothing is silently dropped or flipped.</p>
   </header>
 
-  <div class="tabs" role="tablist" aria-label="Mode">
-    <button role="tab" id="tab-simplify" aria-selected="true" aria-controls="panel-simplify">Simplify</button>
-    <button role="tab" id="tab-check" aria-selected="false" aria-controls="panel-check">Check a rewrite</button>
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px">
+    <div class="tabs" role="tablist" aria-label="Mode" style="margin-bottom:0">
+      <button role="tab" id="tab-simplify" aria-selected="true" aria-controls="panel-simplify">Simplify</button>
+      <button role="tab" id="tab-check" aria-selected="false" aria-controls="panel-check">Check a rewrite</button>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; margin:0; font-weight:400; color:var(--muted)">
+      Language
+      <select id="lang" style="width:auto">
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+      </select>
+    </label>
   </div>
 
   <!-- Simplify mode -->
@@ -208,6 +217,11 @@ function gradeBadge(a, b) {
 function easeBadge(a, b) {
   return `<span class="badge">Flesch ease <strong>${a}</strong> → <strong>${b}</strong></span>`;
 }
+function metricsHtml(srcR, outR) {
+  const hasGrade = srcR.flesch_kincaid_grade != null && outR.flesch_kincaid_grade != null;
+  return (hasGrade ? gradeBadge(srcR.flesch_kincaid_grade, outR.flesch_kincaid_grade) : "")
+    + easeBadge(srcR.flesch_reading_ease, outR.flesch_reading_ease);
+}
 
 function renderFaith(f) {
   const clean = f.ok && f.warnings.length === 0;
@@ -236,9 +250,7 @@ function renderResult({ original, output, srcR, outR, faith, labelB }) {
   $("outA").textContent = original;
   $("outB").textContent = output;
   $("labelB").textContent = labelB;
-  $("metrics").innerHTML =
-    gradeBadge(srcR.flesch_kincaid_grade, outR.flesch_kincaid_grade) +
-    easeBadge(srcR.flesch_reading_ease, outR.flesch_reading_ease);
+  $("metrics").innerHTML = metricsHtml(srcR, outR);
   renderFaith(faith);
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
@@ -250,9 +262,7 @@ function renderEasyRead(d) {
   $("view-standard").classList.add("hidden");
   $("view-easyread").classList.remove("hidden");
   $("erOrig").textContent = d.original;
-  $("metrics").innerHTML =
-    gradeBadge(d.source_readability.flesch_kincaid_grade, d.output_readability.flesch_kincaid_grade) +
-    easeBadge(d.source_readability.flesch_reading_ease, d.output_readability.flesch_reading_ease);
+  $("metrics").innerHTML = metricsHtml(d.source_readability, d.output_readability);
   $("er-lines").innerHTML = d.lines.map((ln) => {
     const pic = ln.image_url
       ? `<img src="${escapeHtml(ln.image_url)}" alt="${escapeHtml(ln.keyword || "")}" loading="lazy" />`
@@ -283,9 +293,9 @@ $("run-simplify").onclick = async () => {
   $("run-simplify").disabled = true;
   try {
     if (level === "easy_read") {
-      renderEasyRead(await post("/easyread", { text }));
+      renderEasyRead(await post("/easyread", { text, lang: $("lang").value }));
     } else {
-      const body = { text, level };
+      const body = { text, level, lang: $("lang").value };
       if (level === "grade") body.grade = parseInt($("grade").value, 10);
       const d = await post("/simplify", body);
       renderResult({
@@ -303,7 +313,7 @@ $("run-check").onclick = async () => {
   if (!source || !output) return showError("Fill in both the original and the rewrite.");
   $("run-check").disabled = true;
   try {
-    const d = await post("/verify", { source, output });
+    const d = await post("/verify", { source, output, lang: $("lang").value });
     renderResult({
       original: source, output, srcR: d.source_readability,
       outR: d.output_readability, faith: d.faithfulness, labelB: "Rewrite",

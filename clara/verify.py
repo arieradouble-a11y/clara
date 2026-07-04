@@ -40,8 +40,8 @@ def _diff(src: Counter, out: Counter) -> tuple[list[str], list[str]]:
     return dropped, invented
 
 
-def verify(source: str, output: str) -> FaithfulnessReport:
-    s, o = inventory(source), inventory(output)
+def verify(source: str, output: str, lang: str = "en") -> FaithfulnessReport:
+    s, o = inventory(source, lang), inventory(output, lang)
     dq, iq = _diff(s["quantities"], o["quantities"])
     dd, idt = _diff(s["dates"], o["dates"])
 

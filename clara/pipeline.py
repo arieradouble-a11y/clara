@@ -31,14 +31,15 @@ def simplify_text(
     level: str = "plain",
     provider: LLMProvider | None = None,
     grade: int | None = None,
+    lang: str = "en",
 ) -> SimplifyResult:
     provider = provider or get_provider()
-    simplified = simplify(text, level=level, provider=provider, grade=grade)
+    simplified = simplify(text, level=level, provider=provider, grade=grade, lang=lang)
     return SimplifyResult(
         original=text,
         simplified=simplified,
         level=level,
-        source_readability=analyze(text),
-        output_readability=analyze(simplified),
-        faithfulness=verify(text, simplified),
+        source_readability=analyze(text, lang),
+        output_readability=analyze(simplified, lang),
+        faithfulness=verify(text, simplified, lang),
     )

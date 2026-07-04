@@ -139,6 +139,10 @@ best-effort and the chosen keyword is returned so a human reviewer can swap the
 image. Lookups are cached on disk and fail soft — if ARASAAC is unreachable the
 text still works, just without pictures.
 
+For inflected languages (e.g. Russian) matching works best on base word forms —
+`мусор` matches, `воду` (accusative) may not. Lemmatization before lookup is a
+planned improvement.
+
 > **Attribution & licensing.** ARASAAC pictograms are the property of the
 > Government of Aragón, created by Sergio Palao, licensed **CC BY-NC-SA**. The
 > **non-commercial** clause carries downstream: if you build a commercial product,
@@ -191,17 +195,31 @@ tests/            hermetic, offline (mock provider)
 
 ---
 
-## Multilingual
+## Languages
 
-Clara is English-first but structured for language packs. A pack supplies:
+Ships **English** and **Russian**. Pick with `--lang` (CLI), the `lang` field
+(API), or the language selector (web UI):
 
-- a readability metric (Flesch for English; other languages need their own),
-- simplification guidance/examples for the prompt,
-- month names and marker words for fact extraction,
-- a pictogram locale (ARASAAC, ~13k CC-licensed symbols, multilingual).
+```bash
+clara simplify --lang ru --text "Плата вносится не позднее 10 числа месяца."
+clara easyread --lang ru --file уведомление.txt
+```
 
-Adding a language is a self-contained pull request — the healthy open-source
-shape. Russian is the intended second pack.
+A language pack (`clara/lang/<code>.py`) is pure data plus a syllable counter:
+
+- readability coefficients (English: Flesch / Flesch-Kincaid; Russian: the
+  Oborneva adaptation of Flesch),
+- month names and negation/obligation/condition words for fact extraction,
+- the word alphabet and stopwords for tokenizing and pictogram keywords,
+- the ARASAAC pictogram locale and an optional simplification note.
+
+Adding a language is one self-contained file plus a line in
+`clara/lang/__init__.py` — the core never changes.
+
+> **Honest gap:** Russian ships a *validated reading-ease* metric but no
+> grade-level one — there is no widely-agreed Russian Flesch-Kincaid coefficient
+> set, so `flesch_kincaid_grade` is reported as `null` rather than a fabricated
+> number. A pull request with a validated formula is welcome.
 
 ---
 
@@ -214,8 +232,8 @@ shape. Russian is the intended second pack.
 - [ ] Ingestion: PDF / DOCX / HTML / URL with structure preservation
 - [ ] Accessible output: tagged PDF, semantic HTML
 - [ ] LLM-based semantic faithfulness check (beyond deterministic numbers/dates)
+- [x] Language packs: English + Russian (add one in `clara/lang/`)
 - [ ] Review workflow: versions, comments, sign-off by validators
-- [ ] Language packs: Russian, then community-driven
 
 ---
 

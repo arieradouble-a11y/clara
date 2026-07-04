@@ -30,9 +30,14 @@ def _read_input(args) -> str:
     return sys.stdin.read()
 
 
+def _fmt(v) -> str:
+    return "n/a" if v is None else str(v)
+
+
 def cmd_simplify(args) -> int:
     provider = get_provider(args.provider)
-    res = simplify_text(_read_input(args), level=args.level, provider=provider, grade=args.grade)
+    res = simplify_text(_read_input(args), level=args.level, provider=provider,
+                        grade=args.grade, lang=args.lang)
     fr = res.faithfulness
 
     if args.json:
@@ -43,7 +48,7 @@ def cmd_simplify(args) -> int:
     print(f"--- Simplified ({res.level}) ---")
     print(res.simplified)
     print()
-    print(f"Readability : grade {src.flesch_kincaid_grade} -> {out.flesch_kincaid_grade}"
+    print(f"Readability : grade {_fmt(src.flesch_kincaid_grade)} -> {_fmt(out.flesch_kincaid_grade)}"
           f"   (Flesch ease {src.flesch_reading_ease} -> {out.flesch_reading_ease})")
 
     if fr.ok and not fr.warnings:
@@ -79,7 +84,7 @@ def cmd_easyread(args) -> int:
         if ln.image_url:
             print(f"      {ln.image_url}")
     out = res.output_readability
-    print(f"\nReadability : grade {out.flesch_kincaid_grade}   (Flesch ease {out.flesch_reading_ease})")
+    print(f"\nReadability : grade {_fmt(out.flesch_kincaid_grade)}   (Flesch ease {out.flesch_reading_ease})")
     fr = res.faithfulness
     if fr.ok and not fr.warnings:
         print("Faithfulness: OK - all numbers and dates preserved.")
@@ -89,7 +94,7 @@ def cmd_easyread(args) -> int:
 
 
 def cmd_score(args) -> int:
-    r = analyze(_read_input(args))
+    r = analyze(_read_input(args), lang=args.lang)
     print(json.dumps(readability_dict(r), indent=2))
     return 0
 
@@ -113,13 +118,14 @@ def main(argv=None) -> int:
     _add_io_args(s)
     s.add_argument("--level", default="plain", choices=["plain", "easy_read", "grade"])
     s.add_argument("--grade", type=int, default=None, help="Target grade for --level grade")
+    s.add_argument("--lang", default="en", help="Language pack (en, ru)")
     s.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     s.add_argument("--json", action="store_true", help="Machine-readable output")
     s.set_defaults(func=cmd_simplify)
 
     e = sub.add_parser("easyread", help="Easy Read: one idea per line, paired with pictograms")
     _add_io_args(e)
-    e.add_argument("--lang", default="en", help="Pictogram language (ARASAAC locale)")
+    e.add_argument("--lang", default="en", help="Language pack (en, ru) — also the ARASAAC locale")
     e.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     e.add_argument("--no-pictograms", action="store_true", help="Skip pictogram lookup (offline)")
     e.add_argument("--json", action="store_true", help="Machine-readable output")
@@ -127,6 +133,7 @@ def main(argv=None) -> int:
 
     sc = sub.add_parser("score", help="Show readability metrics only")
     _add_io_args(sc)
+    sc.add_argument("--lang", default="en", help="Language pack (en, ru)")
     sc.set_defaults(func=cmd_score)
 
     args = parser.parse_args(argv)

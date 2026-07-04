@@ -11,6 +11,7 @@ passed as the user prompt (this also lets MockProvider echo it verbatim).
 """
 from __future__ import annotations
 
+from .lang import get_pack
 from .llm import get_provider
 from .llm.base import LLMProvider
 
@@ -22,6 +23,7 @@ _HARD_RULES = (
     "- Never invert meaning. Keep every negation ('not', 'no') and every condition "
     "('if', 'unless', 'except').\n"
     "- Never add information that is not in the source.\n"
+    "- Write in the same language as the source text.\n"
     "- If something is genuinely unclear, keep it rather than guess.\n"
     "- Output only the rewritten text. No preamble, no notes.\n"
 )
@@ -42,7 +44,7 @@ _STYLES = {
 }
 
 
-def build_system(level: str = "plain", grade: int | None = None) -> str:
+def build_system(level: str = "plain", grade: int | None = None, lang: str = "en") -> str:
     if level == "grade":
         g = grade or 5
         style = (
@@ -51,7 +53,8 @@ def build_system(level: str = "plain", grade: int | None = None) -> str:
         )
     else:
         style = _STYLES.get(level, _STYLES["plain"])
-    return _HARD_RULES + style
+    note = get_pack(lang).simplify_note
+    return _HARD_RULES + style + (f"\n{note}\n" if note else "")
 
 
 def simplify(
@@ -59,7 +62,8 @@ def simplify(
     level: str = "plain",
     provider: LLMProvider | None = None,
     grade: int | None = None,
+    lang: str = "en",
 ) -> str:
     provider = provider or get_provider()
-    system = build_system(level, grade)
+    system = build_system(level, grade, lang)
     return provider.complete(system, text).strip()

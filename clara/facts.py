@@ -1,71 +1,59 @@
 """Deterministic fact extraction — the backbone of the faithfulness layer.
 
-We pull out the pieces of a text that MUST survive simplification unchanged:
-quantities (numbers, money, percentages) and dates. These are checked
-deterministically — no LLM, no network — which is exactly what makes the
-faithfulness report trustworthy: a dropped deadline or a flipped amount is a
-hard, reproducible signal, not a model's opinion.
+We pull out the pieces that MUST survive simplification unchanged: quantities
+(numbers, money, percentages) and dates. These are checked deterministically —
+no LLM, no network — which is what makes the faithfulness report trustworthy: a
+dropped deadline or a flipped amount is a hard, reproducible signal.
 
-Semantic elements (negation, obligation, condition) are also inventoried, but
-only as *review hints*: they are heuristic and meant to prompt a human, never
-to be trusted blindly.
-
-English-first. Other languages plug in by adding their own month names and
-marker words (see ROADMAP in the README).
+Language-specific vocabulary (month names, negation/obligation/condition words,
+the word alphabet) comes from the language pack; the mechanics here are shared.
 """
 from __future__ import annotations
 
 import re
 from collections import Counter
 
-_MONTHS = {
-    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11,
-    "december": 12, "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6,
-    "jul": 7, "aug": 8, "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
-}
-_MONTH_RE = "|".join(sorted(_MONTHS, key=len, reverse=True))
+from .lang import get_pack
 
-# (tag, regex) so normalization does not depend on fragile pattern-string checks.
-_DATE_PATTERNS = [
-    ("iso", re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")),                              # 2024-01-31
-    ("mdy", re.compile(rf"\b({_MONTH_RE})\.?\s+(\d{{1,2}}),?\s+(\d{{4}})\b", re.I)),  # January 31, 2024
-    ("dmy", re.compile(rf"\b(\d{{1,2}})\s+({_MONTH_RE})\.?\s+(\d{{4}})\b", re.I)),    # 31 January 2024
-    ("slash", re.compile(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{2,4})\b")),                # 31/01/2024
-]
-
-# One pass captures numbers, money and percentages so we don't double-count.
+# Number / money / percent — language-independent (digits). One pass so a value
+# is not counted twice.
 _QTY_RE = re.compile(
     r"(?P<cur>[$€£₽]|\b(?:usd|eur|rub|gbp)\b)?\s*"
-    r"(?P<num>\d{1,3}(?:[, \s]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)"
-    r"\s*(?P<pct>%|\bpercent\b)?",
-    re.I,
+    r"(?P<num>\d{1,3}(?:[, \s]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)"
+    r"\s*(?P<pct>%|\bpercent\b|\bпроцент\w*)?",
+    re.IGNORECASE,
 )
 
-_NEGATION_RE = re.compile(
-    r"\b(not|no|never|cannot|can't|won't|don't|doesn't|didn't|without|neither|nor)\b", re.I
-)
-_OBLIGATION_RE = re.compile(
-    r"\b(must|shall|required|mandatory|obliged|obligated|have to|has to)\b", re.I
-)
-_CONDITION_RE = re.compile(
-    r"\b(if|unless|except|provided that|only if|in case|subject to)\b", re.I
-)
+_ISO_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")            # 2024-01-31
+_SLASH_RE = re.compile(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{2,4})\b")  # 31/01/2024 or 31.01.2024
+
+_pattern_cache: dict[str, list] = {}
 
 
-def _norm_date(tag: str, m: re.Match) -> str:
-    """Normalize a matched date to YYYY-MM-DD so the same date written in
-    different formats (ISO vs 'January 31, 2024') compares equal. Falls back to
-    the lowercased raw string if the parts don't add up."""
+def _date_patterns(pack) -> list:
+    if pack.code in _pattern_cache:
+        return _pattern_cache[pack.code]
+    pats = [("iso", _ISO_RE), ("slash", _SLASH_RE)]
+    if pack.months:
+        m = "|".join(sorted(pack.months, key=len, reverse=True))
+        pats.append(("mdy", re.compile(rf"\b({m})\.?\s+(\d{{1,2}}),?\s+(\d{{4}})\b", re.IGNORECASE)))
+        pats.append(("dmy", re.compile(rf"\b(\d{{1,2}})\s+({m})\.?\s+(\d{{4}})\b", re.IGNORECASE)))
+    _pattern_cache[pack.code] = pats
+    return pats
+
+
+def _norm_date(tag: str, m: re.Match, months: dict) -> str:
+    """Normalize to YYYY-MM-DD so the same date in different formats compares
+    equal. Falls back to the lowercased raw string if the parts don't add up."""
     g = m.groups()
     try:
         if tag == "iso":
             y, mo, d = int(g[0]), int(g[1]), int(g[2])
         elif tag == "mdy":
-            mo, d, y = _MONTHS[g[0].lower().rstrip(".")], int(g[1]), int(g[2])
+            mo, d, y = months[g[0].lower().rstrip(".")], int(g[1]), int(g[2])
         elif tag == "dmy":
-            d, mo, y = int(g[0]), _MONTHS[g[1].lower().rstrip(".")], int(g[2])
-        else:  # slash — ambiguous D/M vs M/D; use the >12 part as the day, else default D/M/Y
+            d, mo, y = int(g[0]), months[g[1].lower().rstrip(".")], int(g[2])
+        else:  # slash — ambiguous D/M vs M/D; the part >12 is the day
             a, b, y = int(g[0]), int(g[1]), int(g[2])
             if y < 100:
                 y += 2000
@@ -80,14 +68,13 @@ def _norm_date(tag: str, m: re.Match) -> str:
         return m.group(0).lower()
 
 
-def extract_dates(text: str) -> tuple[list[str], list[tuple[int, int]]]:
-    """Return normalized dates and the character spans they occupied (so the
-    quantity pass can mask them out and not re-count the year/day digits)."""
+def extract_dates(text: str, lang: str = "en") -> tuple[list[str], list[tuple[int, int]]]:
+    pack = get_pack(lang)
     dates: list[str] = []
     spans: list[tuple[int, int]] = []
-    for tag, rx in _DATE_PATTERNS:
+    for tag, rx in _date_patterns(pack):
         for m in rx.finditer(text or ""):
-            dates.append(_norm_date(tag, m))
+            dates.append(_norm_date(tag, m, pack.months))
             spans.append((m.start(), m.end()))
     return dates, spans
 
@@ -103,12 +90,10 @@ def _mask(text: str, spans: list[tuple[int, int]]) -> str:
 
 
 def extract_quantities(text: str) -> list[str]:
-    """Return canonical quantity tokens: '1200', '50%', '$1200'. Thousands
-    separators are stripped; percent words normalize to '%'; currency words
-    normalize to their symbol."""
+    """Canonical quantity tokens: '1200', '50%', '$1200'."""
     out: list[str] = []
     for m in _QTY_RE.finditer(text or ""):
-        num = re.sub(r"[, \s]", "", m.group("num"))
+        num = re.sub(r"[, \s]", "", m.group("num"))
         if m.group("pct"):
             out.append(num + "%")
         elif m.group("cur"):
@@ -121,14 +106,14 @@ def extract_quantities(text: str) -> list[str]:
     return out
 
 
-def inventory(text: str) -> dict:
-    """Full deterministic inventory of a text used by the faithfulness check."""
-    dates, spans = extract_dates(text or "")
+def inventory(text: str, lang: str = "en") -> dict:
+    pack = get_pack(lang)
+    dates, spans = extract_dates(text, lang)
     masked = _mask(text or "", spans)
     return {
         "quantities": Counter(extract_quantities(masked)),
         "dates": Counter(dates),
-        "negation": len(_NEGATION_RE.findall(text or "")),
-        "obligation": len(_OBLIGATION_RE.findall(text or "")),
-        "condition": len(_CONDITION_RE.findall(text or "")),
+        "negation": len(pack.negation_re.findall(text or "")),
+        "obligation": len(pack.obligation_re.findall(text or "")),
+        "condition": len(pack.condition_re.findall(text or "")),
     }

@@ -4,13 +4,15 @@ readers with intellectual disabilities.
 
 The text still passes through the faithfulness check — pictures never excuse a
 dropped fact. Pictogram matching is best-effort and meant to be reviewed by a
-human: the chosen keyword is returned so a reviewer can swap the image.
+human: the chosen keyword is returned so a reviewer can swap the image. Stopwords,
+the word alphabet, and the pictogram locale come from the language pack.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 
+from .lang import get_pack
 from .llm import get_provider
 from .llm.base import LLMProvider
 from .pictograms import best_id, image_url
@@ -18,30 +20,23 @@ from .readability import Readability, analyze
 from .simplify import simplify
 from .verify import FaithfulnessReport, verify
 
-# Function words we never try to illustrate — a picture of "the" helps no one.
-_STOP = {
-    "the", "a", "an", "you", "your", "i", "we", "they", "he", "she", "it", "this",
-    "that", "these", "those", "and", "or", "but", "if", "unless", "of", "to", "in",
-    "on", "at", "by", "for", "with", "from", "as", "is", "are", "was", "were", "be",
-    "been", "being", "do", "does", "did", "have", "has", "had", "will", "shall",
-    "must", "may", "can", "should", "would", "could", "not", "no", "than", "then",
-    "there", "here", "who", "what", "when", "where", "how", "any", "all", "some",
-    "one", "please", "must",
-}
+# Sentence terminators are effectively universal across the languages we target.
+_SENT_SPLIT = re.compile(r"(?<=[.!?…])\s+")
 
 
-def _keywords(line: str) -> list[str]:
+def _keywords(line: str, pack=None) -> list[str]:
     """Content words of a line, in order, as pictogram candidates."""
-    return [w for w in re.findall(r"[A-Za-z]{3,}", line.lower()) if w not in _STOP]
+    pack = pack or get_pack("en")
+    return [w for w in pack.keyword_re.findall(line.lower()) if w not in pack.stopwords]
 
 
 def _split_lines(text: str) -> list[str]:
     """Easy Read = one idea per line. Prefer the model's own line breaks; if the
-    text is a single block, fall back to sentence splitting."""
+    text is a single block, fall back to sentence splitting (keeps terminators)."""
     lines = [ln.strip(" \t-*•").strip() for ln in text.splitlines()]
     lines = [ln for ln in lines if ln]
     if len(lines) <= 1:
-        lines = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
+        lines = [s.strip() for s in _SENT_SPLIT.split(text.strip()) if s.strip()]
     return lines
 
 
@@ -69,14 +64,15 @@ def easy_read(
     with_pictograms: bool = True,
 ) -> EasyReadResult:
     provider = provider or get_provider()
-    simplified = simplify(text, level="easy_read", provider=provider)
+    pack = get_pack(lang)
+    simplified = simplify(text, level="easy_read", provider=provider, lang=lang)
 
     lines: list[EasyReadLine] = []
     for line_text in _split_lines(simplified):
         line = EasyReadLine(text=line_text)
         if with_pictograms:
-            for kw in _keywords(line_text):
-                pid = best_id(kw, lang=lang)
+            for kw in _keywords(line_text, pack):
+                pid = best_id(kw, lang=pack.pictogram_lang)
                 if pid:
                     line.keyword = kw
                     line.pictogram_id = pid
@@ -88,7 +84,7 @@ def easy_read(
     return EasyReadResult(
         original=text,
         lines=lines,
-        source_readability=analyze(text),
-        output_readability=analyze(joined),
-        faithfulness=verify(text, joined),
+        source_readability=analyze(text, lang),
+        output_readability=analyze(joined, lang),
+        faithfulness=verify(text, joined, lang),
     )

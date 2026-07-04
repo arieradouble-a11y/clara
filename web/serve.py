@@ -67,14 +67,16 @@ class Handler(BaseHTTPRequestHandler):
                     level=data.get("level", "plain"),
                     provider=provider,
                     grade=data.get("grade"),
+                    lang=data.get("lang", "en"),
                 )
                 self._send_json(result_dict(res))
             elif self.path == "/verify":
                 source, output = data.get("source", ""), data.get("output", "")
+                lang = data.get("lang", "en")
                 self._send_json({
-                    "faithfulness": faithfulness_dict(verify(source, output)),
-                    "source_readability": readability_dict(analyze(source)),
-                    "output_readability": readability_dict(analyze(output)),
+                    "faithfulness": faithfulness_dict(verify(source, output, lang=lang)),
+                    "source_readability": readability_dict(analyze(source, lang)),
+                    "output_readability": readability_dict(analyze(output, lang)),
                 })
             elif self.path == "/easyread":
                 provider = get_provider(data.get("provider"))

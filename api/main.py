@@ -35,12 +35,14 @@ class SimplifyRequest(BaseModel):
     text: str
     level: str = "plain"
     grade: int | None = None
+    lang: str = "en"
     provider: str | None = None
 
 
 class VerifyRequest(BaseModel):
     source: str
     output: str
+    lang: str = "en"
 
 
 class EasyReadRequest(BaseModel):
@@ -59,16 +61,16 @@ def index() -> str:
 @app.post("/simplify")
 def simplify_endpoint(req: SimplifyRequest) -> dict:
     provider = get_provider(req.provider) if req.provider else None
-    res = simplify_text(req.text, level=req.level, grade=req.grade, provider=provider)
+    res = simplify_text(req.text, level=req.level, grade=req.grade, lang=req.lang, provider=provider)
     return result_dict(res)
 
 
 @app.post("/verify")
 def verify_endpoint(req: VerifyRequest) -> dict:
     return {
-        "faithfulness": faithfulness_dict(verify(req.source, req.output)),
-        "source_readability": readability_dict(analyze(req.source)),
-        "output_readability": readability_dict(analyze(req.output)),
+        "faithfulness": faithfulness_dict(verify(req.source, req.output, lang=req.lang)),
+        "source_readability": readability_dict(analyze(req.source, req.lang)),
+        "output_readability": readability_dict(analyze(req.output, req.lang)),
     }
 
 
