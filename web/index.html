@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clara — verified plain language</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --line: #e2e5ea;
+    --text: #1c2024; --muted: #5b6472; --accent: #0f7d74; --accent-ink: #ffffff;
+    --ok: #1a7f37; --ok-bg: #e6f4ea; --warn: #9a6700; --warn-bg: #fff5e0;
+    --bad: #cf222e; --bad-bg: #ffeef0; --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --surface: #1e2226; --line: #2c323a;
+      --text: #e8eaed; --muted: #9aa4b2; --accent: #33b3a6; --accent-ink: #0b0e10;
+      --ok: #4ac26b; --ok-bg: #17301f; --warn: #e0b341; --warn-bg: #33290f;
+      --bad: #ff6b74; --bad-bg: #3a1c1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 18px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 20px 64px; }
+  header h1 { font-size: 28px; margin: 8px 0 4px; }
+  header p { color: var(--muted); margin: 0 0 20px; }
+  a { color: var(--accent); }
+  .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 4px; width: max-content; margin-bottom: 20px; }
+  .tabs button { border: 0; background: transparent; color: var(--muted); font: inherit;
+    padding: 8px 18px; border-radius: 9px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 20px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea { width: 100%; min-height: 130px; resize: vertical; font: inherit;
+    padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--text); }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; margin-top: 14px; }
+  .field { display: flex; flex-direction: column; }
+  select, input[type="number"] { font: inherit; padding: 9px 12px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--bg); color: var(--text); }
+  .btn { border: 0; background: var(--accent); color: var(--accent-ink); font: inherit;
+    font-weight: 600; padding: 11px 22px; border-radius: 10px; cursor: pointer; }
+  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  .btn:disabled { opacity: .55; cursor: default; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .hint { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .panel h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase;
+    letter-spacing: .04em; color: var(--muted); }
+  .panel .body { white-space: pre-wrap; }
+  .metrics { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .badge { border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 15px; }
+  .badge strong { font-variant-numeric: tabular-nums; }
+  .faith { border-radius: var(--radius); padding: 16px 18px; border: 1px solid var(--line); }
+  .faith.ok { background: var(--ok-bg); border-color: var(--ok); }
+  .faith.review { background: var(--warn-bg); border-color: var(--warn); }
+  .faith .title { font-weight: 700; font-size: 18px; margin: 0 0 6px; }
+  .faith.ok .title { color: var(--ok); }
+  .faith.review .title { color: var(--warn); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 2px; }
+  .chip { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad);
+    border-radius: 8px; padding: 2px 9px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .faith ul { margin: 8px 0 0; padding-left: 20px; }
+  .faith li { margin: 3px 0; }
+  .approve-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+  .approved { color: var(--ok); font-weight: 700; }
+  .error { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .hidden { display: none; }
+  footer { color: var(--muted); font-size: 14px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Clara</h1>
+    <p>Turn complex text into <strong>verified</strong> plain language. Numbers, dates, and
+       negations are checked so nothing is silently dropped or flipped.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Mode">
+    <button role="tab" id="tab-simplify" aria-selected="true" aria-controls="panel-simplify">Simplify</button>
+    <button role="tab" id="tab-check" aria-selected="false" aria-controls="panel-check">Check a rewrite</button>
+  </div>
+
+  <!-- Simplify mode -->
+  <section class="card" id="panel-simplify" role="tabpanel" aria-labelledby="tab-simplify">
+    <label for="src">Source text</label>
+    <textarea id="src" placeholder="Paste a dense notice, contract clause, or medical instruction…"></textarea>
+    <div class="row">
+      <div class="field">
+        <label for="level">Level</label>
+        <select id="level">
+          <option value="plain">Plain Language</option>
+          <option value="easy_read">Easy Read</option>
+          <option value="grade">Target grade</option>
+        </select>
+      </div>
+      <div class="field hidden" id="grade-field">
+        <label for="grade">Grade</label>
+        <input type="number" id="grade" min="1" max="12" value="5" style="width:90px" />
+      </div>
+      <button class="btn" id="run-simplify">Simplify</button>
+      <button class="btn secondary" id="ex-simplify" type="button">Load example</button>
+    </div>
+    <p class="hint">Runs on the server's configured model. With the default <code>mock</code>
+       provider it echoes the text — set <code>CLARA_PROVIDER</code> for real rewriting.</p>
+  </section>
+
+  <!-- Check mode -->
+  <section class="card hidden" id="panel-check" role="tabpanel" aria-labelledby="tab-check">
+    <div class="grid2">
+      <div class="field">
+        <label for="csrc">Original</label>
+        <textarea id="csrc" placeholder="The original, authoritative text…"></textarea>
+      </div>
+      <div class="field">
+        <label for="cout">Rewrite to check</label>
+        <textarea id="cout" placeholder="A plain-language version to verify…"></textarea>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" id="run-check">Check faithfulness</button>
+      <button class="btn secondary" id="ex-check" type="button">Load example</button>
+    </div>
+    <p class="hint">No model needed — this compares the two texts and works fully offline.</p>
+  </section>
+
+  <div id="error" class="error hidden" role="alert"></div>
+
+  <!-- Results -->
+  <section id="results" class="hidden" aria-live="polite">
+    <div class="metrics" id="metrics"></div>
+    <div class="grid2" style="margin-bottom:16px">
+      <div class="card panel"><h3>Original</h3><div class="body" id="outA"></div></div>
+      <div class="card panel"><h3 id="labelB">Simplified</h3><div class="body" id="outB"></div></div>
+    </div>
+    <div id="faith"></div>
+    <div class="approve-row">
+      <button class="btn" id="approve">Approve for publication</button>
+      <span id="approved-note" class="approved hidden">✓ Approved by reviewer</span>
+      <span class="hint">A real sign-off workflow (versions, validator roles) is on the roadmap.</span>
+    </div>
+  </section>
+
+  <footer>
+    Clara is assistive, not authoritative. Simplified public-information text should be
+    validated by the people it is for. Open source, MIT.
+  </footer>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function setMode(mode) {
+  const isSimplify = mode === "simplify";
+  $("tab-simplify").setAttribute("aria-selected", isSimplify);
+  $("tab-check").setAttribute("aria-selected", !isSimplify);
+  $("panel-simplify").classList.toggle("hidden", !isSimplify);
+  $("panel-check").classList.toggle("hidden", isSimplify);
+}
+$("tab-simplify").onclick = () => setMode("simplify");
+$("tab-check").onclick = () => setMode("check");
+$("level").onchange = (e) => $("grade-field").classList.toggle("hidden", e.target.value !== "grade");
+
+function showError(msg) {
+  const el = $("error");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+function clearError() { $("error").classList.add("hidden"); }
+
+function gradeBadge(a, b) {
+  const better = b < a;
+  const arrow = a === b ? "→" : (better ? "↓" : "↑");
+  return `<span class="badge">Reading grade <strong>${a}</strong> ${arrow} <strong>${b}</strong></span>`;
+}
+function easeBadge(a, b) {
+  return `<span class="badge">Flesch ease <strong>${a}</strong> → <strong>${b}</strong></span>`;
+}
+
+function renderFaith(f) {
+  const clean = f.ok && f.warnings.length === 0;
+  const chips = (arr) => arr.map((x) => `<span class="chip">${x}</span>`).join("");
+  let inner = "";
+  if (clean) {
+    inner = `<p class="title">✓ Faithful</p><p>All numbers and dates were preserved.</p>`;
+  } else {
+    inner = `<p class="title">⚠ Needs review</p>`;
+    const block = (label, arr) => arr.length
+      ? `<p style="margin:8px 0 2px"><strong>${label}</strong></p><div class="chips">${chips(arr)}</div>` : "";
+    inner += block("Dropped numbers", f.dropped_quantities);
+    inner += block("Invented numbers", f.invented_quantities);
+    inner += block("Dropped dates", f.dropped_dates);
+    inner += block("Invented dates", f.invented_dates);
+    if (f.warnings.length) {
+      inner += `<ul>` + f.warnings.map((w) => `<li>${w}</li>`).join("") + `</ul>`;
+    }
+  }
+  $("faith").innerHTML = `<div class="faith ${clean ? "ok" : "review"}">${inner}</div>`;
+}
+
+function renderResult({ original, output, srcR, outR, faith, labelB }) {
+  $("outA").textContent = original;
+  $("outB").textContent = output;
+  $("labelB").textContent = labelB;
+  $("metrics").innerHTML =
+    gradeBadge(srcR.flesch_kincaid_grade, outR.flesch_kincaid_grade) +
+    easeBadge(srcR.flesch_reading_ease, outR.flesch_reading_ease);
+  renderFaith(faith);
+  $("approved-note").classList.add("hidden");
+  $("approve").disabled = false;
+  $("results").classList.remove("hidden");
+  $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function post(path, body) {
+  const r = await fetch(path, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  const data = await r.json();
+  if (!r.ok || data.error) throw new Error(data.error || ("HTTP " + r.status));
+  return data;
+}
+
+$("run-simplify").onclick = async () => {
+  clearError();
+  const text = $("src").value.trim();
+  if (!text) return showError("Enter some text to simplify.");
+  const body = { text, level: $("level").value };
+  if (body.level === "grade") body.grade = parseInt($("grade").value, 10);
+  $("run-simplify").disabled = true;
+  try {
+    const d = await post("/simplify", body);
+    renderResult({
+      original: d.original, output: d.simplified, srcR: d.source_readability,
+      outR: d.output_readability, faith: d.faithfulness, labelB: "Simplified",
+    });
+  } catch (e) { showError(e.message); }
+  finally { $("run-simplify").disabled = false; }
+};
+
+$("run-check").onclick = async () => {
+  clearError();
+  const source = $("csrc").value.trim(), output = $("cout").value.trim();
+  if (!source || !output) return showError("Fill in both the original and the rewrite.");
+  $("run-check").disabled = true;
+  try {
+    const d = await post("/verify", { source, output });
+    renderResult({
+      original: source, output, srcR: d.source_readability,
+      outR: d.output_readability, faith: d.faithfulness, labelB: "Rewrite",
+    });
+  } catch (e) { showError(e.message); }
+  finally { $("run-check").disabled = false; }
+};
+
+$("approve").onclick = () => {
+  $("approved-note").classList.remove("hidden");
+  $("approve").disabled = true;
+};
+
+$("ex-simplify").onclick = () => {
+  $("src").value = "Applicants must submit Form 27B in duplicate no later than 2024-01-31, "
+    + "unless they have been granted an exemption under section 4, in which case the fee of "
+    + "$150 shall not be payable.";
+  setMode("simplify");
+};
+$("ex-check").onclick = () => {
+  $("csrc").value = "You must not enter the site without a permit. The fine is $500, "
+    + "payable by 2024-01-31.";
+  // A deliberately flawed rewrite: negation flipped, amount dropped, date changed.
+  $("cout").value = "You can enter the site. Pay the fine by January 2025.";
+  setMode("check");
+};
+</script>
+</body>
+</html>

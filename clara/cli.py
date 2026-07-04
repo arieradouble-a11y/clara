@@ -17,6 +17,7 @@ import sys
 from .llm import get_provider
 from .pipeline import simplify_text
 from .readability import analyze
+from .serialize import readability_dict, result_dict
 
 
 def _read_input(args) -> str:
@@ -28,36 +29,13 @@ def _read_input(args) -> str:
     return sys.stdin.read()
 
 
-def _readability_dict(r) -> dict:
-    return {
-        "words": r.words,
-        "sentences": r.sentences,
-        "flesch_reading_ease": r.flesch_reading_ease,
-        "flesch_kincaid_grade": r.flesch_kincaid_grade,
-    }
-
-
 def cmd_simplify(args) -> int:
     provider = get_provider(args.provider)
     res = simplify_text(_read_input(args), level=args.level, provider=provider, grade=args.grade)
     fr = res.faithfulness
 
     if args.json:
-        print(json.dumps({
-            "level": res.level,
-            "original": res.original,
-            "simplified": res.simplified,
-            "source_readability": _readability_dict(res.source_readability),
-            "output_readability": _readability_dict(res.output_readability),
-            "faithfulness": {
-                "ok": fr.ok,
-                "dropped_quantities": fr.dropped_quantities,
-                "invented_quantities": fr.invented_quantities,
-                "dropped_dates": fr.dropped_dates,
-                "invented_dates": fr.invented_dates,
-                "warnings": fr.warnings,
-            },
-        }, ensure_ascii=False, indent=2))
+        print(json.dumps(result_dict(res), ensure_ascii=False, indent=2))
         return 0
 
     src, out = res.source_readability, res.output_readability
@@ -86,7 +64,7 @@ def cmd_simplify(args) -> int:
 
 def cmd_score(args) -> int:
     r = analyze(_read_input(args))
-    print(json.dumps(_readability_dict(r), indent=2))
+    print(json.dumps(readability_dict(r), indent=2))
     return 0
 
 

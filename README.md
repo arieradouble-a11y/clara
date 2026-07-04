@@ -83,12 +83,27 @@ print(res.output_readability.flesch_kincaid_grade)
 print(res.faithfulness.ok, res.faithfulness.warnings)
 ```
 
+### Reference UI (web)
+
+A zero-dependency reviewer — no Node toolchain, no build step, no API key:
+
+```bash
+py web/serve.py            # http://localhost:8000
+```
+
+Two modes, side by side with drift highlighted:
+- **Simplify** — source → model → simplified + faithfulness report.
+- **Check a rewrite** — paste an original and any plain-language rewrite; get the
+  faithfulness report. Needs no model and works fully offline.
+
 ### As an HTTP API
 
 ```bash
 pip install -e ".[api]"
 uvicorn api.main:app --reload
-# POST /simplify  {"text": "...", "level": "plain"}
+# GET  /            reference UI
+# POST /simplify    {"text": "...", "level": "plain"}
+# POST /verify      {"source": "...", "output": "..."}   (no LLM, offline)
 ```
 
 ---
@@ -166,7 +181,8 @@ shape. Russian is the intended second pack.
 ## Roadmap
 
 - [x] Core: simplify → verify → score, provider-agnostic, CLI, tests
-- [ ] Web UI: source ↔ simplified side by side, drift highlighted, approve
+- [x] Reference UI: source ↔ simplified side by side, drift highlighted, approve
+      (zero-dependency dev server; a full Next.js app is a later evolution)
 - [ ] Ingestion: PDF / DOCX / HTML / URL with structure preservation
 - [ ] Easy Read: pictogram pairing (ARASAAC) + layout rules
 - [ ] Accessible output: tagged PDF, semantic HTML

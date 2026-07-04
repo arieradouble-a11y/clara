@@ -1,41 +1,67 @@
-"""Optional HTTP API. Install extras first:  pip install -e ".[api]"
+"""Optional HTTP API (production-ish). Install extras first:
 
-Run:  uvicorn api.main:app --reload
-POST /simplify  {"text": "...", "level": "plain"}
+    pip install -e ".[api]"
+    uvicorn api.main:app --reload
+
+Endpoints:
+    GET  /            reference UI (web/index.html)
+    POST /simplify    {"text": "...", "level": "plain"}          (uses an LLM provider)
+    POST /verify      {"source": "...", "output": "..."}         (no LLM, offline)
+    GET  /health
+
+For a zero-dependency dev server, see web/serve.py instead.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
+from clara.llm import get_provider
 from clara.pipeline import simplify_text
+from clara.readability import analyze
+from clara.serialize import faithfulness_dict, readability_dict, result_dict
+from clara.verify import verify
 
 app = FastAPI(title="Clara", description="Verified plain-language rewriting.")
+
+_INDEX = Path(__file__).resolve().parent.parent / "web" / "index.html"
 
 
 class SimplifyRequest(BaseModel):
     text: str
     level: str = "plain"
     grade: int | None = None
+    provider: str | None = None
+
+
+class VerifyRequest(BaseModel):
+    source: str
+    output: str
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> str:
+    if _INDEX.exists():
+        return _INDEX.read_text(encoding="utf-8")
+    return "<h1>Clara</h1><p>Reference UI not found. See web/index.html.</p>"
 
 
 @app.post("/simplify")
 def simplify_endpoint(req: SimplifyRequest) -> dict:
-    res = simplify_text(req.text, level=req.level, grade=req.grade)
-    fr = res.faithfulness
+    provider = get_provider(req.provider) if req.provider else None
+    res = simplify_text(req.text, level=req.level, grade=req.grade, provider=provider)
+    return result_dict(res)
+
+
+@app.post("/verify")
+def verify_endpoint(req: VerifyRequest) -> dict:
     return {
-        "level": res.level,
-        "simplified": res.simplified,
-        "source_readability": vars(res.source_readability),
-        "output_readability": vars(res.output_readability),
-        "faithfulness": {
-            "ok": fr.ok,
-            "dropped_quantities": fr.dropped_quantities,
-            "invented_quantities": fr.invented_quantities,
-            "dropped_dates": fr.dropped_dates,
-            "invented_dates": fr.invented_dates,
-            "warnings": fr.warnings,
-        },
+        "faithfulness": faithfulness_dict(verify(req.source, req.output)),
+        "source_readability": readability_dict(analyze(req.source)),
+        "output_readability": readability_dict(analyze(req.output)),
     }
 
 
