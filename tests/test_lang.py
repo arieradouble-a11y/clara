@@ -47,3 +47,34 @@ def test_unknown_lang_raises():
     import pytest
     with pytest.raises(ValueError):
         get_pack("xx")
+
+
+def test_english_lemmatize_is_identity():
+    assert get_pack("en").lemmatize("running") == "running"
+
+
+def test_russian_lemmatize_base_form():
+    import pytest
+    pytest.importorskip("pymorphy3")
+    assert get_pack("ru").lemmatize("воду") == "вода"
+    assert get_pack("ru").lemmatize("рублей") == "рубль"
+
+
+def test_easyread_looks_up_lemma(monkeypatch):
+    import clara.easyread as er
+    from clara.easyread import easy_read
+    from clara.llm.base import MockProvider
+
+    pack = get_pack("ru")
+    monkeypatch.setattr(pack, "lemmatize", lambda w: "вода" if w == "воду" else w)
+    seen = []
+
+    def fake_best_id(kw, lang="ru"):
+        seen.append(kw)
+        return 111 if kw == "вода" else None
+
+    monkeypatch.setattr(er, "best_id", fake_best_id)
+    res = easy_read("Закройте воду.", provider=MockProvider(), lang="ru")
+    assert "вода" in seen  # ARASAAC was queried with the lemma, not "воду"
+    assert res.lines[0].pictogram_id == 111
+    assert res.lines[0].keyword == "вода"

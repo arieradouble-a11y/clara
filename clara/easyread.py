@@ -72,9 +72,10 @@ def easy_read(
         line = EasyReadLine(text=line_text)
         if with_pictograms:
             for kw in _keywords(line_text, pack):
-                pid = best_id(kw, lang=pack.pictogram_lang)
+                lemma = pack.lemmatize(kw)  # 'воду' -> 'вода' so ARASAAC matches
+                pid = best_id(lemma, lang=pack.pictogram_lang)
                 if pid:
-                    line.keyword = kw
+                    line.keyword = lemma
                     line.pictogram_id = pid
                     line.image_url = image_url(pid)
                     break

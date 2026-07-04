@@ -57,3 +57,20 @@ class RussianPack(LanguagePack):
 
     pictogram_lang = "ru"
     simplify_note = "Пиши ясным, простым русским языком. Ответ давай только на русском."
+
+    def lemmatize(self, word: str) -> str:
+        """Reduce an inflected Russian word to its base form so it matches an
+        ARASAAC keyword ('воду' -> 'вода'). Uses pymorphy3 if installed; falls
+        back to the raw word otherwise (feature degrades, nothing breaks)."""
+        if not hasattr(self, "_morph"):
+            try:
+                import pymorphy3
+                self._morph = pymorphy3.MorphAnalyzer()
+            except Exception:
+                self._morph = None
+        if self._morph is None:
+            return word
+        try:
+            return self._morph.parse(word)[0].normal_form
+        except Exception:
+            return word

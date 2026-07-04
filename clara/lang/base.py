@@ -57,3 +57,8 @@ class LanguagePack:
         if not word:
             return 0
         return max(1, sum(1 for ch in word if ch in self.vowels))
+
+    def lemmatize(self, word: str) -> str:
+        """Base form of a word, for pictogram lookup. Default is identity;
+        inflected languages (Russian) override this."""
+        return word
