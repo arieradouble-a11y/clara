@@ -16,6 +16,7 @@ import sys
 
 from .easyread import easy_read
 from .export import document_html
+from .ingest import from_url, ingest_file
 from .llm import get_provider
 from .pipeline import simplify_text
 from .readability import analyze
@@ -24,11 +25,12 @@ from .serialize import easyread_dict, easyread_line_dict, readability_dict, resu
 
 
 def _read_input(args) -> str:
+    if getattr(args, "url", None):
+        return from_url(args.url).text
     if args.text is not None:
         return args.text
     if args.file:
-        with open(args.file, encoding="utf-8") as f:
-            return f.read()
+        return ingest_file(args.file).text  # dispatches: txt / pdf / docx / html
     return sys.stdin.read()
 
 
@@ -126,7 +128,8 @@ def cmd_score(args) -> int:
 def _add_io_args(p) -> None:
     src = p.add_mutually_exclusive_group()
     src.add_argument("--text", help="Text to process (default: read stdin)")
-    src.add_argument("--file", help="Read text from this file")
+    src.add_argument("--file", help="Read text/PDF/DOCX/HTML from this file")
+    src.add_argument("--url", help="Fetch and extract the main text from this URL")
 
 
 def main(argv=None) -> int:

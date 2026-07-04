@@ -13,6 +13,7 @@ The "Check a rewrite" mode (/verify) needs no LLM and works fully offline.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -23,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # make 'clara' 
 
 from clara.easyread import easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
+from clara.ingest import from_url, ingest_bytes  # noqa: E402
 from clara.llm import get_provider  # noqa: E402
 from clara.pipeline import simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
@@ -103,6 +105,20 @@ class Handler(BaseHTTPRequestHandler):
                 rep = semantic_check(data.get("source", ""), data.get("output", ""),
                                      provider=provider, lang=data.get("lang", "en"))
                 self._send_json(semantic_dict(rep))
+            elif self.path == "/ingest":
+                try:
+                    if data.get("url"):
+                        res = from_url(data["url"])
+                    elif data.get("content_b64") is not None:
+                        raw = base64.b64decode(data["content_b64"])
+                        res = ingest_bytes(data.get("filename", "file.txt"), raw)
+                    else:
+                        self._send_json({"error": "Provide a url or a file."}, 400)
+                        return
+                except RuntimeError as e:
+                    self._send_json({"error": str(e)}, 501)
+                    return
+                self._send_json({"text": res.text, "title": res.title, "kind": res.kind})
             elif self.path == "/export":
                 doc = document_html(title=data.get("title", "Plain-language document"),
                                     lang=data.get("lang", "en"), kind=data.get("kind", "text"),

@@ -110,6 +110,14 @@
 
   <!-- Simplify mode -->
   <section class="card" id="panel-simplify" role="tabpanel" aria-labelledby="tab-simplify">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px">
+      <input type="url" id="ingest-url" placeholder="Import from a URL…" aria-label="Import from a URL"
+        style="flex:1; min-width:200px; height:36px; padding:0 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text)" />
+      <button class="btn secondary" id="fetch-url" type="button">Import URL</button>
+      <label class="btn secondary" style="cursor:pointer; margin:0">Import file
+        <input type="file" id="ingest-file" accept=".txt,.html,.htm,.pdf,.docx" style="display:none" />
+      </label>
+    </div>
     <label for="src">Source text</label>
     <textarea id="src" placeholder="Paste a dense notice, contract clause, or medical instruction…"></textarea>
     <div class="row">
@@ -406,6 +414,40 @@ async function download(format) {
 }
 $("dl-html").onclick = () => download("html");
 $("dl-pdf").onclick = () => download("pdf");
+
+function toBase64(buf) {
+  let bin = "";
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
+$("fetch-url").onclick = async () => {
+  const url = $("ingest-url").value.trim();
+  if (!url) return;
+  clearError();
+  $("fetch-url").disabled = true;
+  try {
+    const d = await post("/ingest", { url });
+    $("src").value = d.text || "";
+  } catch (e) { showError(e.message); }
+  finally { $("fetch-url").disabled = false; }
+};
+
+$("ingest-file").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  clearError();
+  try {
+    const b64 = toBase64(await file.arrayBuffer());
+    const d = await post("/ingest", { filename: file.name, content_b64: b64 });
+    $("src").value = d.text || "";
+  } catch (err) { showError(err.message); }
+  finally { e.target.value = ""; }
+};
 
 $("ex-simplify").onclick = () => {
   $("src").value = "Applicants must submit Form 27B in duplicate no later than 2024-01-31, "

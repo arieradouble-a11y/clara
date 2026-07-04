@@ -159,6 +159,28 @@ planned improvement.
 
 ---
 
+## Ingestion
+
+Feed real documents in, not just pasted text. `--file` dispatches by extension
+and `--url` fetches and extracts the main text; the web UI has "Import URL" and
+"Import file".
+
+```bash
+clara simplify --file notice.pdf
+clara easyread --url https://example.gov/notice --lang en
+```
+
+- **Plain text / HTML** — always available (HTML uses a stdlib fallback;
+  `trafilatura` gives cleaner main-content extraction when installed).
+- **URL** — fetched with stdlib `urllib` (no extra dependency).
+- **PDF (pypdf) / DOCX (python-docx)** — `pip install "clara[ingest]"`. Without
+  the library the call returns a clear message instead of a broken result.
+
+Paragraph structure is preserved (blocks separated by blank lines). PDF text is
+extracted best-effort — PDFs are a visual format, so line breaks can be rough.
+
+---
+
 ## Accessible output
 
 Close the loop: export the result as an accessible document.
@@ -259,7 +281,7 @@ Adding a language is one self-contained file plus a line in
       (zero-dependency dev server; a full Next.js app is a later evolution)
 - [x] Easy Read: pictogram pairing (ARASAAC), one idea per line
 - [x] Accessible output: semantic HTML (always) + tagged PDF/UA via WeasyPrint
-- [ ] Ingestion: PDF / DOCX / HTML / URL with structure preservation
+- [x] Ingestion: text / HTML / URL (stdlib) + PDF / DOCX (optional `[ingest]`)
 - [x] LLM-based semantic faithfulness check (opt-in, on top of deterministic)
 - [x] Language packs: English + Russian (add one in `clara/lang/`)
 - [ ] Review workflow: versions, comments, sign-off by validators
