@@ -9,10 +9,19 @@ _CLASSES — nothing else in the core needs to change.
 from __future__ import annotations
 
 from .base import LanguagePack
+from .de import GermanPack
 from .en import EnglishPack
+from .es import SpanishPack
+from .fr import FrenchPack
 from .ru import RussianPack
 
-_CLASSES = {"en": EnglishPack, "ru": RussianPack}
+_CLASSES = {
+    "en": EnglishPack,
+    "ru": RussianPack,
+    "es": SpanishPack,
+    "de": GermanPack,
+    "fr": FrenchPack,
+}
 _PACKS: dict = {}
 
 

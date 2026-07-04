@@ -265,8 +265,8 @@ tests/            hermetic, offline (mock provider)
 
 ## Languages
 
-Ships **English** and **Russian**. Pick with `--lang` (CLI), the `lang` field
-(API), or the language selector (web UI):
+Ships **English, Russian, Spanish, German, French**. Pick with `--lang` (CLI),
+the `lang` field (API), or the language selector (web UI):
 
 ```bash
 clara simplify --lang ru --text "Плата вносится не позднее 10 числа месяца."
@@ -275,8 +275,8 @@ clara easyread --lang ru --file уведомление.txt
 
 A language pack (`clara/lang/<code>.py`) is pure data plus a syllable counter:
 
-- readability coefficients (English: Flesch / Flesch-Kincaid; Russian: the
-  Oborneva adaptation of Flesch),
+- readability coefficients — English: Flesch/Flesch-Kincaid; Russian: Oborneva;
+  Spanish: Szigriszt-Pazos (INFLESZ); German: Amstad; French: Kandel-Moles,
 - month names and negation/obligation/condition words for fact extraction,
 - the word alphabet and stopwords for tokenizing and pictogram keywords,
 - the ARASAAC pictogram locale and an optional simplification note.
@@ -284,10 +284,10 @@ A language pack (`clara/lang/<code>.py`) is pure data plus a syllable counter:
 Adding a language is one self-contained file plus a line in
 `clara/lang/__init__.py` — the core never changes.
 
-> **Honest gap:** Russian ships a *validated reading-ease* metric but no
-> grade-level one — there is no widely-agreed Russian Flesch-Kincaid coefficient
-> set, so `flesch_kincaid_grade` is reported as `null` rather than a fabricated
-> number. A pull request with a validated formula is welcome.
+> **Honest gap:** only English ships a *grade-level* metric. The other packs
+> ship a validated *reading-ease* metric but no grade formula (no widely-agreed
+> coefficient set), so `flesch_kincaid_grade` is reported as `null` rather than a
+> fabricated number. A pull request with a validated formula is welcome.
 
 ---
 

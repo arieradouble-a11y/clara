@@ -34,6 +34,11 @@ class LanguagePack:
     # Easy Read
     stopwords: set = set()
 
+    # Syllable counting: count vowel GROUPS (consecutive vowels = 1, right for
+    # languages with diphthongs like Spanish/French/German) vs each vowel
+    # (right for Russian). English overrides syllables() entirely.
+    group_vowels = False
+
     # Integrations
     pictogram_lang = "en"   # ARASAAC locale
     simplify_note = ""      # appended to the simplification system prompt
@@ -51,11 +56,19 @@ class LanguagePack:
         return re.compile(rf"\b(?:{alt})\b", re.IGNORECASE | re.UNICODE)
 
     def syllables(self, word: str) -> int:
-        """Default: one syllable per vowel — right for languages like Russian
-        where vowels don't cluster. English overrides this with a heuristic."""
+        """One syllable per vowel (Russian), or per vowel group when
+        group_vowels is set (Spanish/French/German). English overrides this."""
         word = word.lower()
         if not word:
             return 0
+        if self.group_vowels:
+            count, prev_vowel = 0, False
+            for ch in word:
+                is_vowel = ch in self.vowels
+                if is_vowel and not prev_vowel:
+                    count += 1
+                prev_vowel = is_vowel
+            return max(1, count)
         return max(1, sum(1 for ch in word if ch in self.vowels))
 
     def lemmatize(self, word: str) -> str:

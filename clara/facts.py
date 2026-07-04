@@ -37,7 +37,10 @@ def _date_patterns(pack) -> list:
     if pack.months:
         m = "|".join(sorted(pack.months, key=len, reverse=True))
         pats.append(("mdy", re.compile(rf"\b({m})\.?\s+(\d{{1,2}}),?\s+(\d{{4}})\b", re.IGNORECASE)))
-        pats.append(("dmy", re.compile(rf"\b(\d{{1,2}})\s+({m})\.?\s+(\d{{4}})\b", re.IGNORECASE)))
+        # day [.] [de] month [.] [de] year — covers "31 January 2024", "10. Januar 2024",
+        # "10 de enero de 2024", "31 января 2024".
+        pats.append(("dmy", re.compile(
+            rf"\b(\d{{1,2}})\.?\s+(?:de\s+)?({m})\.?\s+(?:de\s+)?(\d{{4}})\b", re.IGNORECASE)))
     _pattern_cache[pack.code] = pats
     return pats
 

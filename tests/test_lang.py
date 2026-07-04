@@ -1,3 +1,5 @@
+import pytest
+
 from clara.facts import extract_dates, inventory
 from clara.lang import available, get_pack
 from clara.readability import analyze
@@ -5,7 +7,38 @@ from clara.verify import verify
 
 
 def test_available_packs():
-    assert set(available()) >= {"en", "ru"}
+    assert set(available()) >= {"en", "ru", "es", "de", "fr"}
+
+
+@pytest.mark.parametrize("lang", ["es", "de", "fr"])
+def test_new_packs_reading_ease_no_grade(lang):
+    import clara.readability as rd
+    texts = {
+        "es": "Los inquilinos deben pagar antes del 10 de enero de 2024.",
+        "de": "Die Mieter müssen bis zum 10. Januar 2024 zahlen.",
+        "fr": "Les locataires doivent payer avant le 10 janvier 2024.",
+    }
+    r = rd.analyze(texts[lang], lang=lang)
+    assert r.words > 0
+    assert isinstance(r.flesch_reading_ease, float)
+    assert r.flesch_kincaid_grade is None  # no validated grade formula shipped
+
+
+def test_group_vowel_syllables():
+    # Diphthongs count as one syllable (group counting), unlike Russian.
+    assert get_pack("es").syllables("aire") == 2      # ai-re
+    assert get_pack("fr").syllables("maison") == 2    # mai-son
+    assert get_pack("de").syllables("Haus") == 1      # single vowel group
+
+
+def test_localized_date_and_markers():
+    from clara.facts import extract_dates, inventory
+    dates, _ = extract_dates("Pagar antes del 10 de enero de 2024.", lang="es")
+    assert "2024-01-10" in dates
+    de = inventory("Die Mieter müssen nicht zahlen.", lang="de")
+    assert de["negation"] >= 1 and de["obligation"] >= 1
+    fr = inventory("Les locataires ne doivent pas entrer.", lang="fr")
+    assert fr["negation"] >= 1 and fr["obligation"] >= 1
 
 
 def test_english_still_reports_grade():
