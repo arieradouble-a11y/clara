@@ -23,7 +23,14 @@ env/
 .idea/
 .DS_Store
 
-# Web (Next.js reference UI, added later)
+# Web
 web/node_modules/
 web/.next/
 web/out/
+
+# Next.js app (web-next)
+node_modules/
+web-next/.next/
+web-next/out/
+web-next/next-env.d.ts
+web-next/tsconfig.tsbuildinfo
