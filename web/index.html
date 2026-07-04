@@ -82,6 +82,18 @@
     justify-content: center; text-align: center; color: var(--muted); font-size: 12px;
     border: 1px dashed var(--line); border-radius: 10px; }
   .er-line .er-text { font-size: 20px; line-height: 1.4; }
+  .rv-row { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
+  .rv-row:hover { border-color: var(--accent); }
+  .rv-title { font-weight: 600; }
+  .rv-meta { color: var(--muted); font-size: 13px; }
+  .badge-status { font-size: 12px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--line); white-space: nowrap; }
+  .st-approved { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+  .st-rejected, .st-changes_requested { color: var(--warn); border-color: var(--warn); background: var(--warn-bg); }
+  .st-in_review, .st-draft { color: var(--muted); }
+  .rv-comment { border-left: 2px solid var(--line); padding: 4px 0 4px 12px; margin: 6px 0; }
+  .rv-comment .who { font-size: 13px; color: var(--muted); }
   .hidden { display: none; }
   footer { color: var(--muted); font-size: 14px; margin-top: 32px; }
 </style>
@@ -98,6 +110,7 @@
     <div class="tabs" role="tablist" aria-label="Mode" style="margin-bottom:0">
       <button role="tab" id="tab-simplify" aria-selected="true" aria-controls="panel-simplify">Simplify</button>
       <button role="tab" id="tab-check" aria-selected="false" aria-controls="panel-check">Check a rewrite</button>
+      <button role="tab" id="tab-reviews" aria-selected="false" aria-controls="panel-reviews">Reviews</button>
     </div>
     <label style="display:flex; align-items:center; gap:8px; margin:0; font-weight:400; color:var(--muted)">
       Language
@@ -159,6 +172,23 @@
     <p class="hint">No model needed — this compares the two texts and works fully offline.</p>
   </section>
 
+  <!-- Reviews mode -->
+  <section class="card hidden" id="panel-reviews" role="tabpanel" aria-labelledby="tab-reviews">
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px">
+      <button class="btn secondary" id="reviews-refresh" type="button">Refresh</button>
+      <select id="reviews-filter" style="width:auto">
+        <option value="">All statuses</option>
+        <option value="in_review">In review</option>
+        <option value="changes_requested">Changes requested</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+        <option value="draft">Draft</option>
+      </select>
+    </div>
+    <div id="review-list"></div>
+    <div id="review-detail" class="hidden" style="margin-top:16px"></div>
+  </section>
+
   <div id="error" class="error hidden" role="alert"></div>
 
   <!-- Results -->
@@ -189,6 +219,7 @@
     <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
       <button class="btn secondary" id="dl-html">Download accessible HTML</button>
       <button class="btn secondary" id="dl-pdf">Download tagged PDF</button>
+      <button class="btn secondary" id="save-review">Save to review</button>
       <span class="hint">Semantic document — correct language, headings, and alt text.</span>
     </div>
     <div class="approve-row">
@@ -210,17 +241,23 @@ const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 let lastResult = null;  // {source, output, lang} for the optional AI semantic check
 let lastExport = null;  // {kind, lang, title, text|lines, footer} for accessible export
+let lastReview = null;  // payload for "Save to review"
 const EXPORT_FOOTER = "Simplified with Clara — assistive, not authoritative. Verify against the original.";
+const deriveTitle = (src) => {
+  const first = (src || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "Untitled";
+  return first.length > 60 ? first.slice(0, 57) + "…" : first;
+};
 
 function setMode(mode) {
-  const isSimplify = mode === "simplify";
-  $("tab-simplify").setAttribute("aria-selected", isSimplify);
-  $("tab-check").setAttribute("aria-selected", !isSimplify);
-  $("panel-simplify").classList.toggle("hidden", !isSimplify);
-  $("panel-check").classList.toggle("hidden", isSimplify);
+  ["simplify", "check", "reviews"].forEach((m) => {
+    $("tab-" + m).setAttribute("aria-selected", String(m === mode));
+    $("panel-" + m).classList.toggle("hidden", m !== mode);
+  });
+  if (mode === "reviews") loadReviews();
 }
 $("tab-simplify").onclick = () => setMode("simplify");
 $("tab-check").onclick = () => setMode("check");
+$("tab-reviews").onclick = () => setMode("reviews");
 $("level").onchange = (e) => $("grade-field").classList.toggle("hidden", e.target.value !== "grade");
 
 function showError(msg) {
@@ -265,7 +302,7 @@ function renderFaith(f) {
   $("faith").innerHTML = `<div class="faith ${clean ? "ok" : "review"}">${inner}</div>`;
 }
 
-function renderResult({ original, output, srcR, outR, faith, labelB }) {
+function renderResult({ original, output, srcR, outR, faith, labelB, level }) {
   $("view-standard").classList.remove("hidden");
   $("view-easyread").classList.add("hidden");
   $("outA").textContent = original;
@@ -276,6 +313,8 @@ function renderResult({ original, output, srcR, outR, faith, labelB }) {
   lastResult = { source: original, output, lang: $("lang").value };
   lastExport = { kind: "text", lang: $("lang").value, title: "Plain-language document",
                  text: output, footer: EXPORT_FOOTER };
+  lastReview = { title: deriveTitle(original), source: original, output, lang: $("lang").value,
+                 level: level || "plain", kind: "text", faithful: faith.ok };
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
@@ -298,6 +337,10 @@ function renderEasyRead(d) {
   lastResult = { source: d.original, output: d.lines.map((l) => l.text).join("\n"), lang: $("lang").value };
   lastExport = { kind: "easyread", lang: $("lang").value, title: "Easy Read document",
                  lines: d.lines, footer: EXPORT_FOOTER };
+  lastReview = { title: deriveTitle(d.original), source: d.original,
+                 output: d.lines.map((l) => l.text).join("\n"), lang: $("lang").value,
+                 level: "easy_read", kind: "easyread", meta: { lines: d.lines },
+                 faithful: d.faithfulness.ok };
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
@@ -329,7 +372,7 @@ $("run-simplify").onclick = async () => {
       const d = await post("/simplify", body);
       renderResult({
         original: d.original, output: d.simplified, srcR: d.source_readability,
-        outR: d.output_readability, faith: d.faithfulness, labelB: "Simplified",
+        outR: d.output_readability, faith: d.faithfulness, labelB: "Simplified", level,
       });
     }
   } catch (e) { showError(e.message); }
@@ -345,7 +388,7 @@ $("run-check").onclick = async () => {
     const d = await post("/verify", { source, output, lang: $("lang").value });
     renderResult({
       original: source, output, srcR: d.source_readability,
-      outR: d.output_readability, faith: d.faithfulness, labelB: "Rewrite",
+      outR: d.output_readability, faith: d.faithfulness, labelB: "Rewrite", level: "check",
     });
   } catch (e) { showError(e.message); }
   finally { $("run-check").disabled = false; }
@@ -448,6 +491,107 @@ $("ingest-file").onchange = async (e) => {
   } catch (err) { showError(err.message); }
   finally { e.target.value = ""; }
 };
+
+// --- Reviews ---
+$("save-review").onclick = async () => {
+  if (!lastReview) return;
+  clearError();
+  try {
+    const r = await post("/reviews/create", lastReview);
+    setMode("reviews");
+    openReview(r.id);
+  } catch (e) { showError(e.message); }
+};
+$("reviews-refresh").onclick = () => loadReviews();
+$("reviews-filter").onchange = () => loadReviews();
+
+const statusBadge = (s) => `<span class="badge-status st-${s}">${escapeHtml(s.replace(/_/g, " "))}</span>`;
+
+async function loadReviews() {
+  clearError();
+  try {
+    const status = $("reviews-filter").value;
+    const d = await post("/reviews/list", status ? { status } : {});
+    const rows = d.reviews || [];
+    if (!rows.length) {
+      $("review-list").innerHTML = '<p class="hint">No reviews yet. Simplify something, then "Save to review".</p>';
+      $("review-detail").classList.add("hidden");
+      return;
+    }
+    $("review-list").innerHTML = rows.map((r) => `<div class="rv-row" id="rv-${r.id}">
+      <div><div class="rv-title">${escapeHtml(r.title)}</div>
+      <div class="rv-meta">#${r.id} · ${escapeHtml(r.lang)}/${escapeHtml(r.level)} · ${escapeHtml(r.updated_at)}</div></div>
+      ${statusBadge(r.status)}</div>`).join("");
+    rows.forEach((r) => { $("rv-" + r.id).onclick = () => openReview(r.id); });
+  } catch (e) { showError(e.message); }
+}
+
+async function openReview(id) {
+  clearError();
+  try { renderReviewDetail(await post("/reviews/get", { id })); }
+  catch (e) { showError(e.message); }
+}
+
+function renderReviewDetail(r) {
+  const comments = (r.comments || []).map((c) =>
+    `<div class="rv-comment"><div class="who">${escapeHtml(c.author)} · ${escapeHtml(c.created_at)}</div>${escapeHtml(c.body)}</div>`
+  ).join("") || '<p class="hint">No comments yet.</p>';
+  const faith = r.faithful == null ? "" : (r.faithful
+    ? ' <span class="badge-status st-approved">facts preserved</span>'
+    : ' <span class="badge-status st-changes_requested">facts need review</span>');
+  $("review-detail").innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px">
+      <div><strong>${escapeHtml(r.title)}</strong> <span class="rv-meta">#${r.id} · ${escapeHtml(r.lang)}/${escapeHtml(r.level)}</span></div>
+      ${statusBadge(r.status)}
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="card panel"><h3>Original</h3><div class="body">${escapeHtml(r.source)}</div></div>
+      <div class="card panel"><h3>Current output${faith}</h3><div class="body">${escapeHtml(r.output)}</div></div>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px">
+      <button class="btn secondary" data-st="approved">Approve</button>
+      <button class="btn secondary" data-st="changes_requested">Request changes</button>
+      <button class="btn secondary" data-st="rejected">Reject</button>
+      <span class="hint">${r.versions.length} version(s)</span>
+    </div>
+    <p class="er-head">Comments</p>
+    <div id="rv-comments">${comments}</div>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
+      <input id="rv-author" placeholder="Your name" aria-label="Your name"
+        style="width:150px; height:36px; padding:0 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text)" />
+      <input id="rv-body" placeholder="Add a comment…" aria-label="Comment"
+        style="flex:1; min-width:180px; height:36px; padding:0 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text)" />
+      <button class="btn secondary" id="rv-add-comment">Comment</button>
+    </div>
+    <p class="er-head" style="margin-top:16px">Save a revision</p>
+    <textarea id="rv-output" aria-label="Revised output">${escapeHtml(r.output)}</textarea>
+    <div style="margin-top:8px"><button class="btn secondary" id="rv-save-rev">Save revision</button></div>`;
+  $("review-detail").querySelectorAll("[data-st]").forEach((b) => {
+    b.onclick = () => setReviewStatus(r.id, b.getAttribute("data-st"));
+  });
+  $("rv-add-comment").onclick = () => addReviewComment(r.id);
+  $("rv-save-rev").onclick = () => saveRevision(r.id);
+  $("review-detail").classList.remove("hidden");
+  $("review-detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function setReviewStatus(id, status) {
+  try { renderReviewDetail(await post("/reviews/status", { id, status })); loadReviews(); }
+  catch (e) { showError(e.message); }
+}
+async function addReviewComment(id) {
+  const author = $("rv-author").value.trim();
+  const body = $("rv-body").value.trim();
+  if (!body) return;
+  try { renderReviewDetail(await post("/reviews/comment", { id, author, body })); }
+  catch (e) { showError(e.message); }
+}
+async function saveRevision(id) {
+  try {
+    renderReviewDetail(await post("/reviews/revision", { id, output: $("rv-output").value, note: "edited in reviewer" }));
+    loadReviews();
+  } catch (e) { showError(e.message); }
+}
 
 $("ex-simplify").onclick = () => {
   $("src").value = "Applicants must submit Form 27B in duplicate no later than 2024-01-31, "

@@ -202,6 +202,23 @@ clara easyread --html --lang ru --file уведомление.txt > easyread.htm
 
 ---
 
+## Review workflow
+
+Simplified public-information text should be validated by people — the Easy Read
+standard asks for it. Clara persists reviews so that can happen: save a result,
+and a reviewer can comment, request changes, save a revised version, and approve.
+
+- Web UI: "Save to review" on any result, then the **Reviews** tab to triage —
+  filter by status, open one, comment, change status, edit a revision.
+- CLI: `clara review list`, `clara review show <id>`,
+  `clara review status <id> approved`.
+
+State lives in a stdlib-sqlite store (`clara/review.py`, default
+`~/.clara/reviews.db`, override with `CLARA_DB`). Statuses: draft, in_review,
+approved, rejected, changes_requested. Every revision is versioned.
+
+---
+
 ## LLM providers
 
 Provider-agnostic. Set `CLARA_PROVIDER` (default `mock`, which runs offline):
@@ -284,7 +301,7 @@ Adding a language is one self-contained file plus a line in
 - [x] Ingestion: text / HTML / URL (stdlib) + PDF / DOCX (optional `[ingest]`)
 - [x] LLM-based semantic faithfulness check (opt-in, on top of deterministic)
 - [x] Language packs: English + Russian (add one in `clara/lang/`)
-- [ ] Review workflow: versions, comments, sign-off by validators
+- [x] Review workflow: versions, comments, status sign-off (sqlite store)
 
 ---
 
