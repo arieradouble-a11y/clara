@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Secrets / local config
+.env
+*.key
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Web (Next.js reference UI, added later)
+web/node_modules/
+web/.next/
+web/out/
