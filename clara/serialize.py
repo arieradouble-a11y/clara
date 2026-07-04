@@ -2,6 +2,7 @@
 one place so the wire format never drifts between them."""
 from __future__ import annotations
 
+from .easyread import EasyReadLine, EasyReadResult
 from .pipeline import SimplifyResult
 from .readability import Readability
 from .verify import FaithfulnessReport
@@ -32,6 +33,25 @@ def result_dict(res: SimplifyResult) -> dict:
         "level": res.level,
         "original": res.original,
         "simplified": res.simplified,
+        "source_readability": readability_dict(res.source_readability),
+        "output_readability": readability_dict(res.output_readability),
+        "faithfulness": faithfulness_dict(res.faithfulness),
+    }
+
+
+def easyread_line_dict(line: EasyReadLine) -> dict:
+    return {
+        "text": line.text,
+        "keyword": line.keyword,
+        "pictogram_id": line.pictogram_id,
+        "image_url": line.image_url,
+    }
+
+
+def easyread_dict(res: EasyReadResult) -> dict:
+    return {
+        "original": res.original,
+        "lines": [easyread_line_dict(ln) for ln in res.lines],
         "source_readability": readability_dict(res.source_readability),
         "output_readability": readability_dict(res.output_readability),
         "faithfulness": faithfulness_dict(res.faithfulness),

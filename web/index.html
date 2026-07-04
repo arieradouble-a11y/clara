@@ -72,6 +72,16 @@
   .approved { color: var(--ok); font-weight: 700; }
   .error { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad);
     border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+  .er-head { font-size: 14px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--muted); margin: 0 0 10px; }
+  .er-line { display: flex; gap: 14px; align-items: center; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .er-line img { width: 76px; height: 76px; object-fit: contain; flex: none;
+    background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+  .er-line .noimg { width: 76px; height: 76px; flex: none; display: flex; align-items: center;
+    justify-content: center; text-align: center; color: var(--muted); font-size: 12px;
+    border: 1px dashed var(--line); border-radius: 10px; }
+  .er-line .er-text { font-size: 20px; line-height: 1.4; }
   .hidden { display: none; }
   footer { color: var(--muted); font-size: 14px; margin-top: 32px; }
 </style>
@@ -137,10 +147,22 @@
   <!-- Results -->
   <section id="results" class="hidden" aria-live="polite">
     <div class="metrics" id="metrics"></div>
-    <div class="grid2" style="margin-bottom:16px">
+
+    <div id="view-standard" class="grid2" style="margin-bottom:16px">
       <div class="card panel"><h3>Original</h3><div class="body" id="outA"></div></div>
       <div class="card panel"><h3 id="labelB">Simplified</h3><div class="body" id="outB"></div></div>
     </div>
+
+    <div id="view-easyread" class="hidden" style="margin-bottom:16px">
+      <div class="card panel" style="margin-bottom:12px">
+        <h3>Original</h3><div class="body" id="erOrig"></div>
+      </div>
+      <p class="er-head">Easy Read</p>
+      <div id="er-lines"></div>
+      <p class="hint">Pictograms: <a href="https://arasaac.org">ARASAAC</a> (CC BY-NC-SA) —
+         Government of Aragón, author Sergio Palao. Non-commercial use.</p>
+    </div>
+
     <div id="faith"></div>
     <div class="approve-row">
       <button class="btn" id="approve">Approve for publication</button>
@@ -157,6 +179,8 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function setMode(mode) {
   const isSimplify = mode === "simplify";
@@ -207,6 +231,8 @@ function renderFaith(f) {
 }
 
 function renderResult({ original, output, srcR, outR, faith, labelB }) {
+  $("view-standard").classList.remove("hidden");
+  $("view-easyread").classList.add("hidden");
   $("outA").textContent = original;
   $("outB").textContent = output;
   $("labelB").textContent = labelB;
@@ -214,6 +240,26 @@ function renderResult({ original, output, srcR, outR, faith, labelB }) {
     gradeBadge(srcR.flesch_kincaid_grade, outR.flesch_kincaid_grade) +
     easeBadge(srcR.flesch_reading_ease, outR.flesch_reading_ease);
   renderFaith(faith);
+  $("approved-note").classList.add("hidden");
+  $("approve").disabled = false;
+  $("results").classList.remove("hidden");
+  $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function renderEasyRead(d) {
+  $("view-standard").classList.add("hidden");
+  $("view-easyread").classList.remove("hidden");
+  $("erOrig").textContent = d.original;
+  $("metrics").innerHTML =
+    gradeBadge(d.source_readability.flesch_kincaid_grade, d.output_readability.flesch_kincaid_grade) +
+    easeBadge(d.source_readability.flesch_reading_ease, d.output_readability.flesch_reading_ease);
+  $("er-lines").innerHTML = d.lines.map((ln) => {
+    const pic = ln.image_url
+      ? `<img src="${escapeHtml(ln.image_url)}" alt="${escapeHtml(ln.keyword || "")}" loading="lazy" />`
+      : `<div class="noimg">no picture</div>`;
+    return `<div class="er-line">${pic}<div class="er-text">${escapeHtml(ln.text)}</div></div>`;
+  }).join("");
+  renderFaith(d.faithfulness);
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
   $("results").classList.remove("hidden");
@@ -233,15 +279,20 @@ $("run-simplify").onclick = async () => {
   clearError();
   const text = $("src").value.trim();
   if (!text) return showError("Enter some text to simplify.");
-  const body = { text, level: $("level").value };
-  if (body.level === "grade") body.grade = parseInt($("grade").value, 10);
+  const level = $("level").value;
   $("run-simplify").disabled = true;
   try {
-    const d = await post("/simplify", body);
-    renderResult({
-      original: d.original, output: d.simplified, srcR: d.source_readability,
-      outR: d.output_readability, faith: d.faithfulness, labelB: "Simplified",
-    });
+    if (level === "easy_read") {
+      renderEasyRead(await post("/easyread", { text }));
+    } else {
+      const body = { text, level };
+      if (level === "grade") body.grade = parseInt($("grade").value, 10);
+      const d = await post("/simplify", body);
+      renderResult({
+        original: d.original, output: d.simplified, srcR: d.source_readability,
+        outR: d.output_readability, faith: d.faithfulness, labelB: "Simplified",
+      });
+    }
   } catch (e) { showError(e.message); }
   finally { $("run-simplify").disabled = false; }
 };

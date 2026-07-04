@@ -120,6 +120,33 @@ These are genuinely different audiences — Clara keeps them distinct:
 
 ---
 
+## Easy Read + pictograms
+
+Easy Read lays the text out one idea per line and pairs each line with a
+pictogram — the format the standard uses for readers with intellectual
+disabilities. The text still goes through the faithfulness check; a picture
+never excuses a dropped fact.
+
+```bash
+clara easyread --text "Applicants must submit Form 27B by 2024-01-31."
+# → each line with a matched pictogram id, keyword, and image URL
+
+# In the web UI, pick the "Easy Read" level to see the picture layout.
+```
+
+Pictograms come from **ARASAAC** (~13k symbols, multilingual). Matching is
+best-effort and the chosen keyword is returned so a human reviewer can swap the
+image. Lookups are cached on disk and fail soft — if ARASAAC is unreachable the
+text still works, just without pictures.
+
+> **Attribution & licensing.** ARASAAC pictograms are the property of the
+> Government of Aragón, created by Sergio Palao, licensed **CC BY-NC-SA**. The
+> **non-commercial** clause carries downstream: if you build a commercial product,
+> you must swap in a symbol set whose license permits it. The pictogram source is
+> isolated in `clara/pictograms.py` for exactly this reason.
+
+---
+
 ## LLM providers
 
 Provider-agnostic. Set `CLARA_PROVIDER` (default `mock`, which runs offline):
@@ -183,8 +210,8 @@ shape. Russian is the intended second pack.
 - [x] Core: simplify → verify → score, provider-agnostic, CLI, tests
 - [x] Reference UI: source ↔ simplified side by side, drift highlighted, approve
       (zero-dependency dev server; a full Next.js app is a later evolution)
+- [x] Easy Read: pictogram pairing (ARASAAC), one idea per line
 - [ ] Ingestion: PDF / DOCX / HTML / URL with structure preservation
-- [ ] Easy Read: pictogram pairing (ARASAAC) + layout rules
 - [ ] Accessible output: tagged PDF, semantic HTML
 - [ ] LLM-based semantic faithfulness check (beyond deterministic numbers/dates)
 - [ ] Review workflow: versions, comments, sign-off by validators

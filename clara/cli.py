@@ -1,7 +1,7 @@
 """Command-line interface.
 
     clara simplify --text "..."            # rewrite + faithfulness report
-    clara simplify --file doc.txt --level easy_read
+    clara easyread --file doc.txt          # one idea per line + pictograms
     echo "..." | clara simplify --json     # machine-readable output
     clara score --file doc.txt             # just the readability numbers
 
@@ -14,10 +14,11 @@ import argparse
 import json
 import sys
 
+from .easyread import easy_read
 from .llm import get_provider
 from .pipeline import simplify_text
 from .readability import analyze
-from .serialize import readability_dict, result_dict
+from .serialize import easyread_dict, readability_dict, result_dict
 
 
 def _read_input(args) -> str:
@@ -62,6 +63,31 @@ def cmd_simplify(args) -> int:
     return 0
 
 
+def cmd_easyread(args) -> int:
+    provider = get_provider(args.provider)
+    res = easy_read(_read_input(args), provider=provider, lang=args.lang,
+                    with_pictograms=not args.no_pictograms)
+
+    if args.json:
+        print(json.dumps(easyread_dict(res), ensure_ascii=False, indent=2))
+        return 0
+
+    print("--- Easy Read ---")
+    for ln in res.lines:
+        pic = f"[{ln.pictogram_id}: {ln.keyword}]" if ln.pictogram_id else "[no picture]"
+        print(f"  {pic}  {ln.text}")
+        if ln.image_url:
+            print(f"      {ln.image_url}")
+    out = res.output_readability
+    print(f"\nReadability : grade {out.flesch_kincaid_grade}   (Flesch ease {out.flesch_reading_ease})")
+    fr = res.faithfulness
+    if fr.ok and not fr.warnings:
+        print("Faithfulness: OK - all numbers and dates preserved.")
+    else:
+        print("Faithfulness: REVIEW", "".join(f"\n  ! {w}" for w in fr.warnings))
+    return 0
+
+
 def cmd_score(args) -> int:
     r = analyze(_read_input(args))
     print(json.dumps(readability_dict(r), indent=2))
@@ -90,6 +116,14 @@ def main(argv=None) -> int:
     s.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     s.add_argument("--json", action="store_true", help="Machine-readable output")
     s.set_defaults(func=cmd_simplify)
+
+    e = sub.add_parser("easyread", help="Easy Read: one idea per line, paired with pictograms")
+    _add_io_args(e)
+    e.add_argument("--lang", default="en", help="Pictogram language (ARASAAC locale)")
+    e.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
+    e.add_argument("--no-pictograms", action="store_true", help="Skip pictogram lookup (offline)")
+    e.add_argument("--json", action="store_true", help="Machine-readable output")
+    e.set_defaults(func=cmd_easyread)
 
     sc = sub.add_parser("score", help="Show readability metrics only")
     _add_io_args(sc)

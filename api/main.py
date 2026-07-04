@@ -19,10 +19,11 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
+from clara.easyread import easy_read
 from clara.llm import get_provider
 from clara.pipeline import simplify_text
 from clara.readability import analyze
-from clara.serialize import faithfulness_dict, readability_dict, result_dict
+from clara.serialize import easyread_dict, faithfulness_dict, readability_dict, result_dict
 from clara.verify import verify
 
 app = FastAPI(title="Clara", description="Verified plain-language rewriting.")
@@ -40,6 +41,12 @@ class SimplifyRequest(BaseModel):
 class VerifyRequest(BaseModel):
     source: str
     output: str
+
+
+class EasyReadRequest(BaseModel):
+    text: str
+    lang: str = "en"
+    provider: str | None = None
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -63,6 +70,12 @@ def verify_endpoint(req: VerifyRequest) -> dict:
         "source_readability": readability_dict(analyze(req.source)),
         "output_readability": readability_dict(analyze(req.output)),
     }
+
+
+@app.post("/easyread")
+def easyread_endpoint(req: EasyReadRequest) -> dict:
+    provider = get_provider(req.provider) if req.provider else None
+    return easyread_dict(easy_read(req.text, provider=provider, lang=req.lang))
 
 
 @app.get("/health")
