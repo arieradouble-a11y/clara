@@ -26,6 +26,7 @@ from clara.easyread import easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
 from clara.llm import get_provider  # noqa: E402
+from clara.review import ReviewStore  # noqa: E402
 from clara.pipeline import simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
 from clara.semantic import semantic_check  # noqa: E402
@@ -39,6 +40,7 @@ from clara.serialize import (  # noqa: E402
 from clara.verify import verify  # noqa: E402
 
 INDEX = Path(__file__).resolve().parent / "index.html"
+_reviews = ReviewStore()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -119,6 +121,35 @@ class Handler(BaseHTTPRequestHandler):
                     self._send_json({"error": str(e)}, 501)
                     return
                 self._send_json({"text": res.text, "title": res.title, "kind": res.kind})
+            elif self.path == "/reviews/create":
+                try:
+                    self._send_json(_reviews.create_review(
+                        title=data.get("title", "Untitled"), source=data.get("source", ""),
+                        output=data.get("output", ""), lang=data.get("lang", "en"),
+                        level=data.get("level", "plain"), kind=data.get("kind", "text"),
+                        meta=data.get("meta"), faithful=data.get("faithful"),
+                        status=data.get("status", "in_review")))
+                except ValueError as e:
+                    self._send_json({"error": str(e)}, 400)
+            elif self.path == "/reviews/list":
+                self._send_json({"reviews": _reviews.list_reviews(status=data.get("status"))})
+            elif self.path == "/reviews/get":
+                r = _reviews.get_review(data.get("id"))
+                self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
+            elif self.path == "/reviews/comment":
+                r = _reviews.add_comment(data.get("id"), data.get("author"), data.get("body", ""))
+                self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
+            elif self.path == "/reviews/status":
+                try:
+                    r = _reviews.set_status(data.get("id"), data.get("status"))
+                except ValueError as e:
+                    self._send_json({"error": str(e)}, 400)
+                else:
+                    self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
+            elif self.path == "/reviews/revision":
+                r = _reviews.add_revision(data.get("id"), data.get("output", ""),
+                                          note=data.get("note"), faithful=data.get("faithful"))
+                self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
             elif self.path == "/export":
                 doc = document_html(title=data.get("title", "Plain-language document"),
                                     lang=data.get("lang", "en"), kind=data.get("kind", "text"),

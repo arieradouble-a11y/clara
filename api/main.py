@@ -25,6 +25,7 @@ from clara.easyread import easy_read
 from clara.export import document_html, document_pdf
 from clara.ingest import from_url, ingest_bytes
 from clara.llm import get_provider
+from clara.review import ReviewStore
 from clara.pipeline import simplify_text
 from clara.readability import analyze
 from clara.semantic import semantic_check
@@ -40,6 +41,7 @@ from clara.verify import verify
 app = FastAPI(title="Clara", description="Verified plain-language rewriting.")
 
 _INDEX = Path(__file__).resolve().parent.parent / "web" / "index.html"
+_reviews = ReviewStore()
 
 
 class SimplifyRequest(BaseModel):
@@ -149,6 +151,51 @@ def export_endpoint(req: ExportRequest):
                         headers={"Content-Disposition": 'attachment; filename="clara.pdf"'})
     return Response(doc, media_type="text/html; charset=utf-8",
                     headers={"Content-Disposition": 'attachment; filename="clara.html"'})
+
+
+@app.post("/reviews/create")
+def reviews_create(payload: dict):
+    try:
+        return _reviews.create_review(
+            title=payload.get("title", "Untitled"), source=payload.get("source", ""),
+            output=payload.get("output", ""), lang=payload.get("lang", "en"),
+            level=payload.get("level", "plain"), kind=payload.get("kind", "text"),
+            meta=payload.get("meta"), faithful=payload.get("faithful"),
+            status=payload.get("status", "in_review"))
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@app.post("/reviews/list")
+def reviews_list(payload: dict):
+    return {"reviews": _reviews.list_reviews(status=payload.get("status"))}
+
+
+@app.post("/reviews/get")
+def reviews_get(payload: dict):
+    return _reviews.get_review(payload.get("id")) or JSONResponse({"error": "not found"}, status_code=404)
+
+
+@app.post("/reviews/comment")
+def reviews_comment(payload: dict):
+    r = _reviews.add_comment(payload.get("id"), payload.get("author"), payload.get("body", ""))
+    return r or JSONResponse({"error": "not found"}, status_code=404)
+
+
+@app.post("/reviews/status")
+def reviews_status(payload: dict):
+    try:
+        r = _reviews.set_status(payload.get("id"), payload.get("status"))
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    return r or JSONResponse({"error": "not found"}, status_code=404)
+
+
+@app.post("/reviews/revision")
+def reviews_revision(payload: dict):
+    r = _reviews.add_revision(payload.get("id"), payload.get("output", ""),
+                              note=payload.get("note"), faithful=payload.get("faithful"))
+    return r or JSONResponse({"error": "not found"}, status_code=404)
 
 
 @app.get("/health")

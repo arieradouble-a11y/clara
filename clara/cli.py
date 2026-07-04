@@ -20,6 +20,7 @@ from .ingest import from_url, ingest_file
 from .llm import get_provider
 from .pipeline import simplify_text
 from .readability import analyze
+from .review import ReviewStore
 from .semantic import semantic_check
 from .serialize import easyread_dict, easyread_line_dict, readability_dict, result_dict
 
@@ -125,6 +126,45 @@ def cmd_score(args) -> int:
     return 0
 
 
+def cmd_review_list(args) -> int:
+    rows = ReviewStore().list_reviews(status=args.status)
+    if not rows:
+        print("No reviews.")
+        return 0
+    for r in rows:
+        print(f'#{r["id"]:<4} {r["status"]:<18} {r["lang"]}/{r["level"]:<8} {r["title"]}')
+    return 0
+
+
+def cmd_review_show(args) -> int:
+    r = ReviewStore().get_review(args.id)
+    if not r:
+        print(f"Review #{args.id} not found.")
+        return 1
+    print(f'#{r["id"]} [{r["status"]}] {r["title"]}  ({r["lang"]}/{r["level"]}/{r["kind"]})')
+    print("\n-- Source --\n" + r["source"])
+    print("\n-- Output --\n" + r["output"])
+    if r["comments"]:
+        print("\n-- Comments --")
+        for c in r["comments"]:
+            print(f'  [{c["created_at"]}] {c["author"]}: {c["body"]}')
+    print(f'\nVersions: {len(r["versions"])}')
+    return 0
+
+
+def cmd_review_status(args) -> int:
+    try:
+        r = ReviewStore().set_status(args.id, args.status)
+    except ValueError as e:
+        print(e)
+        return 1
+    if not r:
+        print(f"Review #{args.id} not found.")
+        return 1
+    print(f'#{r["id"]} -> {r["status"]}')
+    return 0
+
+
 def _add_io_args(p) -> None:
     src = p.add_mutually_exclusive_group()
     src.add_argument("--text", help="Text to process (default: read stdin)")
@@ -165,6 +205,19 @@ def main(argv=None) -> int:
     _add_io_args(sc)
     sc.add_argument("--lang", default="en", help="Language pack (en, ru)")
     sc.set_defaults(func=cmd_score)
+
+    rv = sub.add_parser("review", help="Inspect the review workflow store")
+    rvsub = rv.add_subparsers(dest="review_cmd", required=True)
+    rl = rvsub.add_parser("list", help="List reviews")
+    rl.add_argument("--status", default=None, help="Filter by status")
+    rl.set_defaults(func=cmd_review_list)
+    rs = rvsub.add_parser("show", help="Show one review")
+    rs.add_argument("id", type=int)
+    rs.set_defaults(func=cmd_review_show)
+    rt = rvsub.add_parser("status", help="Set a review's status")
+    rt.add_argument("id", type=int)
+    rt.add_argument("status", help="draft|in_review|approved|rejected|changes_requested")
+    rt.set_defaults(func=cmd_review_status)
 
     args = parser.parse_args(argv)
     return args.func(args)
