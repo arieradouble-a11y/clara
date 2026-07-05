@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/components/AuthProvider";
 import type { Review, ReviewSummary } from "@/lib/types";
 
 const STATUSES = ["", "in_review", "changes_requested", "approved", "rejected", "draft"];
@@ -11,6 +12,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ReviewsPage() {
+  const auth = useAuth();
   const [rows, setRows] = useState<ReviewSummary[]>([]);
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Review | null>(null);
@@ -19,7 +21,14 @@ export default function ReviewsPage() {
   const [body, setBody] = useState("");
   const [revision, setRevision] = useState("");
 
+  const locked = auth.enabled && !auth.user;
+
   const load = useCallback(async () => {
+    if (auth.enabled && !auth.user) {
+      setRows([]);
+      setSelected(null);
+      return;
+    }
     setError(null);
     try {
       const d = await api<{ reviews: ReviewSummary[] }>("reviews/list", filter ? { status: filter } : {});
@@ -27,11 +36,11 @@ export default function ReviewsPage() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [filter]);
+  }, [filter, auth.enabled, auth.user]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (auth.ready) void load();
+  }, [load, auth.ready]);
 
   async function open(id: number) {
     setError(null);
@@ -71,7 +80,9 @@ export default function ReviewsPage() {
 
       {error && <div className="error" role="alert">{error}</div>}
 
-      {rows.length === 0 ? (
+      {locked ? (
+        <p className="hint">Please sign in (top right) to view reviews.</p>
+      ) : rows.length === 0 ? (
         <p className="hint">No reviews yet. Simplify something, then &quot;Save to review&quot;.</p>
       ) : (
         rows.map((r) => (

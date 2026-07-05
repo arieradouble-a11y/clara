@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AuthWidget } from "./AuthWidget";
 
 const LINKS = [
   { href: "/", label: "Simplify" },
@@ -19,6 +20,7 @@ export function Nav() {
           {l.label}
         </Link>
       ))}
+      <AuthWidget />
     </header>
   );
 }

@@ -2,10 +2,30 @@
 // forwards to the Clara FastAPI backend (CLARA_API) — the browser never talks to
 // the Python backend directly, so there is no CORS to configure.
 
+export function getToken(): string {
+  return typeof window !== "undefined" ? localStorage.getItem("clara_token") || "" : "";
+}
+
+export function setToken(token: string): void {
+  if (typeof window === "undefined") return;
+  if (token) localStorage.setItem("clara_token", token);
+  else localStorage.removeItem("clara_token");
+}
+
+function withAuth(base: Record<string, string> = {}): Record<string, string> {
+  const t = getToken();
+  return t ? { ...base, Authorization: `Bearer ${t}` } : base;
+}
+
+export async function getJson<T>(path: string): Promise<T> {
+  const res = await fetch(`/api/clara/${path}`, { headers: withAuth() });
+  return (await res.json()) as T;
+}
+
 export async function api<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`/api/clara/${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: withAuth({ "content-type": "application/json" }),
     body: JSON.stringify(body),
   });
   let data: unknown = null;
@@ -34,7 +54,7 @@ export function toBase64(buffer: ArrayBuffer): string {
 export async function download(path: string, body: unknown, filename: string): Promise<void> {
   const res = await fetch(`/api/clara/${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: withAuth({ "content-type": "application/json" }),
     body: JSON.stringify(body),
   });
   if (!res.ok) {

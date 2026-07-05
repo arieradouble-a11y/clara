@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { AuthProvider } from "@/components/AuthProvider";
 import { Nav } from "@/components/Nav";
 
 export const metadata: Metadata = {
@@ -12,8 +13,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <Nav />
-        <main className="wrap">{children}</main>
+        <AuthProvider>
+          <Nav />
+          <main className="wrap">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );
