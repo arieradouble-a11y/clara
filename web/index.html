@@ -106,6 +106,8 @@
        negations are checked so nothing is silently dropped or flipped.</p>
   </header>
 
+  <div id="authbar" style="display:none; align-items:center; gap:8px; margin-bottom:16px; flex-wrap:wrap"></div>
+
   <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px">
     <div class="tabs" role="tablist" aria-label="Mode" style="margin-bottom:0">
       <button role="tab" id="tab-simplify" aria-selected="true" aria-controls="panel-simplify">Simplify</button>
@@ -356,13 +358,71 @@ function renderEasyRead(d) {
   $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+function authToken() { return localStorage.getItem("clara_token") || ""; }
+function setAuthToken(t) { t ? localStorage.setItem("clara_token", t) : localStorage.removeItem("clara_token"); }
+function authHeaders(base) {
+  const h = base || {};
+  if (authToken()) h["Authorization"] = "Bearer " + authToken();
+  return h;
+}
+
 async function post(path, body) {
   const r = await fetch(path, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
   });
   const data = await r.json();
   if (!r.ok || data.error) throw new Error(data.error || ("HTTP " + r.status));
   return data;
+}
+
+let authState = { enabled: false, users: 0, user: null };
+
+async function loadAuth() {
+  try {
+    const r = await fetch("/auth/status", { headers: authHeaders() });
+    authState = await r.json();
+  } catch { authState = { enabled: false, users: 0, user: null }; }
+  renderAuthBar();
+}
+
+function renderAuthBar() {
+  const bar = $("authbar");
+  if (!authState.enabled) { bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+  const inp = "height:34px; padding:0 10px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text)";
+  if (authState.user) {
+    bar.innerHTML = `<span class="hint">Signed in as <b>${escapeHtml(authState.user.username)}</b> (${escapeHtml(authState.user.role)})</span>`
+      + `<button class="btn secondary" id="logout-btn">Log out</button>`;
+    $("logout-btn").onclick = doLogout;
+  } else {
+    const first = authState.users === 0;
+    bar.innerHTML = `<span class="hint">${first ? "Create the first (admin) account:" : "Sign in to review:"}</span>`
+      + `<input type="text" id="auth-user" placeholder="Username" style="${inp}" />`
+      + `<input type="password" id="auth-pass" placeholder="Password" style="${inp}" />`
+      + `<button class="btn secondary" id="auth-go">${first ? "Create admin" : "Sign in"}</button>`;
+    $("auth-go").onclick = () => doAuth(first);
+    $("auth-pass").onkeydown = (e) => { if (e.key === "Enter") doAuth(first); };
+  }
+}
+
+async function doAuth(register) {
+  const username = $("auth-user").value.trim();
+  const password = $("auth-pass").value;
+  if (!username || !password) return showError("Enter a username and password.");
+  clearError();
+  try {
+    const d = await post(register ? "/auth/register" : "/auth/login", { username, password });
+    setAuthToken(d.token);
+    await loadAuth();
+  } catch (e) { showError(e.message); }
+}
+
+async function doLogout() {
+  try { await post("/auth/logout", {}); } catch { /* ignore */ }
+  setAuthToken("");
+  await loadAuth();
 }
 
 $("run-simplify").onclick = async () => {
@@ -503,6 +563,7 @@ $("ingest-file").onchange = async (e) => {
 // --- Reviews ---
 $("save-review").onclick = async () => {
   if (!lastReview) return;
+  if (authState.enabled && !authState.user) return showError("Sign in above to save reviews.");
   clearError();
   try {
     const r = await post("/reviews/create", lastReview);
@@ -516,6 +577,11 @@ $("reviews-filter").onchange = () => loadReviews();
 const statusBadge = (s) => `<span class="badge-status st-${s}">${escapeHtml(s.replace(/_/g, " "))}</span>`;
 
 async function loadReviews() {
+  if (authState.enabled && !authState.user) {
+    $("review-list").innerHTML = '<p class="hint">Please sign in above to view reviews.</p>';
+    $("review-detail").classList.add("hidden");
+    return;
+  }
   clearError();
   try {
     const status = $("reviews-filter").value;
@@ -614,6 +680,8 @@ $("ex-check").onclick = () => {
   $("cout").value = "You can enter the site. Pay the fine by January 2025.";
   setMode("check");
 };
+
+loadAuth();
 </script>
 </body>
 </html>
