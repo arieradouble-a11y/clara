@@ -93,6 +93,27 @@ def test_russian_lemmatize_base_form():
     assert get_pack("ru").lemmatize("рублей") == "рубль"
 
 
+@pytest.mark.parametrize("lang,word,base", [
+    ("es", "casas", "casa"),
+    ("de", "Häuser", "Haus"),
+    ("fr", "maisons", "maison"),
+])
+def test_latin_lemmatize(lang, word, base):
+    pytest.importorskip("simplemma")
+    assert get_pack(lang).lemmatize(word) == base
+
+
+def test_latin_lemmatize_soft_fails(monkeypatch):
+    pytest.importorskip("simplemma")
+    import simplemma
+
+    def boom(*a, **k):
+        raise RuntimeError("simulated")
+
+    monkeypatch.setattr(simplemma, "lemmatize", boom)
+    assert get_pack("de").lemmatize("Häuser") == "Häuser"  # falls back to the raw word
+
+
 def test_easyread_looks_up_lemma(monkeypatch):
     import clara.easyread as er
     from clara.easyread import easy_read

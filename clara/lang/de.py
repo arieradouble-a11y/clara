@@ -48,3 +48,4 @@ class GermanPack(LanguagePack):
 
     pictogram_lang = "de"
     simplify_note = "Schreibe in einfacher, klarer Sprache. Antworte nur auf Deutsch."
+    use_simplemma = True

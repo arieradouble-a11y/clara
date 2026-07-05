@@ -50,3 +50,4 @@ class SpanishPack(LanguagePack):
 
     pictogram_lang = "es"
     simplify_note = "Escribe en español claro y sencillo. Responde solo en español."
+    use_simplemma = True

@@ -151,9 +151,10 @@ best-effort and the chosen keyword is returned so a human reviewer can swap the
 image. Lookups are cached on disk and fail soft — if ARASAAC is unreachable the
 text still works, just without pictures.
 
-For inflected languages (e.g. Russian) matching works best on base word forms —
-`мусор` matches, `воду` (accusative) may not. Lemmatization before lookup is a
-planned improvement.
+Inflected languages are lemmatized before lookup so more words match: Russian via
+pymorphy3 (`pip install "clara[ru]"`), Spanish/German/French via simplemma
+(`clara[es]` / `clara[de]` / `clara[fr]`). Without the optional dependency it
+falls back to the raw word.
 
 > **Attribution & licensing.** ARASAAC pictograms are the property of the
 > Government of Aragón, created by Sergio Palao, licensed **CC BY-NC-SA**. The

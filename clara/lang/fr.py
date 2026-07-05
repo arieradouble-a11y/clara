@@ -47,3 +47,4 @@ class FrenchPack(LanguagePack):
 
     pictogram_lang = "fr"
     simplify_note = "Écris en français simple et clair. Réponds uniquement en français."
+    use_simplemma = True

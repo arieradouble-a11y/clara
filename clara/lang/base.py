@@ -42,6 +42,7 @@ class LanguagePack:
     # Integrations
     pictogram_lang = "en"   # ARASAAC locale
     simplify_note = ""      # appended to the simplification system prompt
+    use_simplemma = False   # Latin-script packs opt into simplemma lemmatization
 
     def __init__(self):
         self.negation_re = self._markers(self.negation)
@@ -72,6 +73,14 @@ class LanguagePack:
         return max(1, sum(1 for ch in word if ch in self.vowels))
 
     def lemmatize(self, word: str) -> str:
-        """Base form of a word, for pictogram lookup. Default is identity;
-        inflected languages (Russian) override this."""
-        return word
+        """Base form of a word, for pictogram lookup. Identity by default; the
+        Latin-script packs opt into simplemma via use_simplemma, and Russian
+        overrides this with pymorphy3. Soft-fails to the raw word."""
+        if not self.use_simplemma:
+            return word
+        try:
+            import simplemma
+
+            return simplemma.lemmatize(word, lang=self.code)
+        except Exception:
+            return word
