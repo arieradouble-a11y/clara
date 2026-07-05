@@ -21,6 +21,16 @@ export async function api<T>(path: string, body: unknown): Promise<T> {
   return data as T;
 }
 
+export function toBase64(buffer: ArrayBuffer): string {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
 export async function download(path: string, body: unknown, filename: string): Promise<void> {
   const res = await fetch(`/api/clara/${path}`, {
     method: "POST",

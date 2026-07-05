@@ -104,6 +104,10 @@ Two modes, side by side with drift highlighted:
 - **Check a rewrite** — paste an original and any plain-language rewrite; get the
   faithfulness report. Needs no model and works fully offline.
 
+For a richer application there is a **Next.js app** in [`web-next/`](web-next/)
+(App Router + TypeScript) that talks to the FastAPI backend through a proxy
+route — see its README to run it.
+
 ### As an HTTP API
 
 ```bash

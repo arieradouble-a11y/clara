@@ -33,14 +33,14 @@ npm run dev            # http://localhost:3000
 
 ## What's here
 
-- **Simplify** (`app/page.tsx`) — text → plain / target-grade, in 5 languages,
-  with readability, the deterministic faithfulness card, an opt-in AI semantic
-  check, accessible HTML / tagged-PDF export, and "Save to review".
+- **Simplify** (`app/page.tsx`) — text → Plain Language / Easy Read (with ARASAAC
+  pictograms) / target-grade, in 5 languages. Import from a URL or a file
+  (PDF/DOCX/HTML/text). Readability, the deterministic faithfulness card, an
+  opt-in AI semantic check, accessible HTML / tagged-PDF export, and "Save to
+  review".
+- **Check a rewrite** (`app/check/page.tsx`) — paste an original and any rewrite;
+  get the faithfulness report (no model needed).
 - **Reviews** (`app/reviews/page.tsx`) — list and triage: open a review, comment,
   change status, save a revision.
-- `lib/` — typed API client and shared types; `components/` — presentational parts.
-
-## Roadmap (ports from the reference UI)
-
-Easy Read with pictograms, "Check a rewrite" mode, and URL/file ingestion exist
-in `../web/` and are natural additions here next.
+- `components/ResultPanel.tsx` — the shared result view + actions reused by
+  Simplify, Check, and Easy Read; `lib/` — typed API client and shared types.

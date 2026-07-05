@@ -66,3 +66,11 @@ select, input[type="text"] { font: inherit; padding: 9px 12px; border: 1px solid
 .st-in_review, .st-draft { color: var(--muted); }
 .rv-comment { border-left: 2px solid var(--line); padding: 4px 0 4px 12px; margin: 6px 0; }
 .rv-comment .who { font-size: 13px; color: var(--muted); }
+.er-line { display: flex; gap: 14px; align-items: center; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.er-line img { width: 76px; height: 76px; object-fit: contain; flex: none; background: #fff;
+  border: 1px solid var(--line); border-radius: 10px; }
+.er-line .noimg { width: 76px; height: 76px; flex: none; display: flex; align-items: center;
+  justify-content: center; text-align: center; color: var(--muted); font-size: 12px;
+  border: 1px dashed var(--line); border-radius: 10px; }
+.er-line .er-text { font-size: 20px; line-height: 1.4; }

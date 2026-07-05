@@ -23,6 +23,40 @@ export interface SimplifyResult {
   faithfulness: Faithfulness;
 }
 
+export interface EasyReadLine {
+  text: string;
+  keyword: string | null;
+  pictogram_id: number | null;
+  image_url: string | null;
+}
+
+export interface EasyReadResult {
+  original: string;
+  lines: EasyReadLine[];
+  source_readability: Readability;
+  output_readability: Readability;
+  faithfulness: Faithfulness;
+}
+
+export interface VerifyResult {
+  faithfulness: Faithfulness;
+  source_readability: Readability;
+  output_readability: Readability;
+}
+
+// A shape the shared <ResultPanel> can render for Simplify, Check, and Easy Read.
+export interface NormalizedResult {
+  original: string;
+  outputText: string;
+  srcR: Readability;
+  outR: Readability;
+  faithfulness: Faithfulness;
+  lang: string;
+  level: string;
+  kind: "text" | "easyread";
+  lines?: EasyReadLine[];
+}
+
 export interface SemanticIssue {
   type: string;
   detail: string;
