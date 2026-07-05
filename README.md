@@ -204,6 +204,12 @@ clara easyread --html --lang ru --file уведомление.txt > easyread.htm
   HTML stays the reliable path, and browsers produce a tagged PDF when you print
   the semantic HTML.
 
+For Easy Read, **"Embed pictures (offline)"** (CLI `clara easyread --html
+--embed-images`) inlines the ARASAAC pictograms as base64 data URIs, so the
+document is fully self-contained and works with no network. Off by default (URLs
+are lighter); the PNGs are cached on disk, and any that can't be fetched fall
+back to their URL.
+
 ---
 
 ## Review workflow

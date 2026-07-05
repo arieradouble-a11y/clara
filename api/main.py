@@ -79,6 +79,7 @@ class ExportRequest(BaseModel):
     text: str | None = None
     lines: list[dict] | None = None
     footer: str | None = None
+    embed_images: bool = False    # inline pictograms as data URIs (offline)
 
 
 class IngestRequest(BaseModel):
@@ -141,7 +142,8 @@ def ingest_endpoint(req: IngestRequest):
 @app.post("/export")
 def export_endpoint(req: ExportRequest):
     doc = document_html(title=req.title, lang=req.lang, kind=req.kind,
-                        text=req.text, lines=req.lines, footer=req.footer)
+                        text=req.text, lines=req.lines, footer=req.footer,
+                        embed_images=req.embed_images)
     if req.format == "pdf":
         try:
             pdf = document_pdf(doc)

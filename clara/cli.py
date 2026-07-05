@@ -97,7 +97,8 @@ def cmd_easyread(args) -> int:
     if args.html:
         lines = [easyread_line_dict(ln) for ln in res.lines]
         print(document_html(kind="easyread", lines=lines, lang=args.lang, title="Easy Read document",
-                            footer="Simplified with Clara — assistive, not authoritative."))
+                            footer="Simplified with Clara — assistive, not authoritative.",
+                            embed_images=args.embed_images))
         return 0
 
     if args.json:
@@ -198,6 +199,8 @@ def main(argv=None) -> int:
     e.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     e.add_argument("--no-pictograms", action="store_true", help="Skip pictogram lookup (offline)")
     e.add_argument("--html", action="store_true", help="Output an accessible HTML document")
+    e.add_argument("--embed-images", action="store_true",
+                   help="Inline pictograms as data URIs so the HTML works offline (with --html)")
     e.add_argument("--json", action="store_true", help="Machine-readable output")
     e.set_defaults(func=cmd_easyread)
 

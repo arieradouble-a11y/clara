@@ -12,6 +12,7 @@ non-commercial clause carries downstream — see the README before shipping.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 from pathlib import Path
@@ -76,3 +77,42 @@ def best_id(keyword: str, lang: str = "en", *, timeout: float = 8.0) -> int | No
         cache[key] = pid
         _save_cache()
     return pid
+
+
+def _png_path(pictogram_id: int, size: int) -> Path:
+    return _CACHE_DIR / "img" / f"{pictogram_id}_{size}.png"
+
+
+def _fetch_png(pictogram_id: int, size: int, timeout: float) -> bytes | None:
+    path = _png_path(pictogram_id, size)
+    try:
+        if path.exists():
+            return path.read_bytes()
+    except Exception:
+        pass
+    try:
+        import httpx
+
+        r = httpx.get(image_url(pictogram_id, size), timeout=timeout)
+        if r.status_code == 200 and r.content:
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(r.content)
+            except Exception:
+                pass
+            return r.content
+    except Exception:
+        return None
+    return None
+
+
+def image_data_uri(pictogram_id: int, size: int = 300, *, timeout: float = 10.0) -> str | None:
+    """A data: URI for a pictogram, so exported HTML/PDF works with no network.
+    The PNG is cached on disk; returns None (caller falls back to the URL) if the
+    image can't be fetched."""
+    if not pictogram_id:
+        return None
+    data = _fetch_png(pictogram_id, size, timeout)
+    if not data:
+        return None
+    return "data:image/png;base64," + base64.b64encode(data).decode("ascii")

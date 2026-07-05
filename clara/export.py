@@ -39,10 +39,16 @@ def _paragraphs_html(text: str) -> str:
     return "\n".join(f"<p>{_html.escape(p)}</p>" for p in parts) or "<p></p>"
 
 
-def _easyread_html(lines: list) -> str:
+def _easyread_html(lines: list, embed_images: bool = False) -> str:
     items = []
     for ln in lines or []:
         url = ln.get("image_url")
+        if embed_images and ln.get("pictogram_id"):
+            from .pictograms import image_data_uri  # lazy: keeps export import-light
+
+            uri = image_data_uri(ln["pictogram_id"])
+            if uri:  # fall back to the URL if the image can't be fetched
+                url = uri
         img = ""
         if url:
             alt = _html.escape(ln.get("keyword") or "")
@@ -59,8 +65,9 @@ def document_html(
     text: str | None = None,
     lines: list | None = None,
     footer: str | None = None,
+    embed_images: bool = False,
 ) -> str:
-    body = _easyread_html(lines) if kind == "easyread" else _paragraphs_html(text or "")
+    body = _easyread_html(lines, embed_images) if kind == "easyread" else _paragraphs_html(text or "")
     foot = f"<footer>{_html.escape(footer)}</footer>\n" if footer else ""
     return (
         f'<!DOCTYPE html>\n<html lang="{_html.escape(lang)}">\n<head>\n'

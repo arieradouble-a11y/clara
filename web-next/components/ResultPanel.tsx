@@ -18,6 +18,7 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
   const [semantic, setSemantic] = useState<SemanticReport | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [embed, setEmbed] = useState(false);
 
   const isEasy = result.kind === "easyread";
 
@@ -40,7 +41,7 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
     setError(null);
     const title = isEasy ? "Easy Read document" : "Plain-language document";
     const body = isEasy
-      ? { format, kind: "easyread", title, lang: result.lang, lines: result.lines, footer: FOOTER }
+      ? { format, kind: "easyread", title, lang: result.lang, lines: result.lines, footer: FOOTER, embed_images: embed }
       : { format, kind: "text", title, lang: result.lang, text: result.outputText, footer: FOOTER };
     try {
       await download("export", body, format === "pdf" ? "clara.pdf" : "clara.html");
@@ -100,6 +101,12 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
         <button className="btn secondary" onClick={runSemantic}>Run AI semantic check</button>
         <button className="btn secondary" onClick={() => doExport("html")}>Download HTML</button>
         <button className="btn secondary" onClick={() => doExport("pdf")}>Download tagged PDF</button>
+        {isEasy && (
+          <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--muted)" }}>
+            <input type="checkbox" checked={embed} onChange={(e) => setEmbed(e.target.checked)} />
+            Embed pictures (offline)
+          </label>
+        )}
         <button className="btn secondary" onClick={save}>Save to review</button>
         {savedId != null && (
           <span className="hint">Saved — <Link href="/reviews">open in Reviews</Link> (#{savedId}).</span>

@@ -154,7 +154,8 @@ class Handler(BaseHTTPRequestHandler):
                 doc = document_html(title=data.get("title", "Plain-language document"),
                                     lang=data.get("lang", "en"), kind=data.get("kind", "text"),
                                     text=data.get("text"), lines=data.get("lines"),
-                                    footer=data.get("footer"))
+                                    footer=data.get("footer"),
+                                    embed_images=data.get("embed_images", False))
                 if data.get("format") == "pdf":
                     try:
                         self._send_bytes(document_pdf(doc), "application/pdf", "clara.pdf")

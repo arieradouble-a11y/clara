@@ -223,6 +223,9 @@
       <button class="btn secondary" id="dl-html">Download accessible HTML</button>
       <button class="btn secondary" id="dl-pdf">Download tagged PDF</button>
       <button class="btn secondary" id="save-review">Save to review</button>
+      <label id="embed-wrap" style="display:none; align-items:center; gap:6px; color:var(--muted); font-weight:400">
+        <input type="checkbox" id="embed-pics" /> Embed pictures (offline)
+      </label>
       <span class="hint">Semantic document — correct language, headings, and alt text.</span>
     </div>
     <div class="approve-row">
@@ -318,6 +321,7 @@ function renderResult({ original, output, srcR, outR, faith, labelB, level }) {
                  text: output, footer: EXPORT_FOOTER };
   lastReview = { title: deriveTitle(original), source: original, output, lang: $("lang").value,
                  level: level || "plain", kind: "text", faithful: faith.ok };
+  $("embed-wrap").style.display = "none";
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
@@ -344,6 +348,7 @@ function renderEasyRead(d) {
                  output: d.lines.map((l) => l.text).join("\n"), lang: $("lang").value,
                  level: "easy_read", kind: "easyread", meta: { lines: d.lines },
                  faithful: d.faithfulness.ok };
+  $("embed-wrap").style.display = "flex";
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
@@ -439,7 +444,7 @@ async function download(format) {
   try {
     const res = await fetch("/export", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...lastExport, format }),
+      body: JSON.stringify({ ...lastExport, format, embed_images: $("embed-pics").checked }),
     });
     if (!res.ok) {
       const e = await res.json().catch(() => ({ error: "Export failed (HTTP " + res.status + ")" }));
