@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS reviews (
   output TEXT NOT NULL,
   meta TEXT,
   status TEXT NOT NULL DEFAULT 'in_review',
-  faithful INTEGER
+  faithful INTEGER,
+  created_by INTEGER,
+  created_by_name TEXT
 );
 CREATE TABLE IF NOT EXISTS versions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,6 +78,12 @@ class ReviewStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as c:
             c.executescript(_SCHEMA)
+            # Migrate older DBs that predate attribution columns.
+            for col, decl in (("created_by", "INTEGER"), ("created_by_name", "TEXT")):
+                try:
+                    c.execute(f"ALTER TABLE reviews ADD COLUMN {col} {decl}")
+                except sqlite3.OperationalError:
+                    pass
 
     @contextmanager
     def _conn(self):
@@ -93,6 +101,7 @@ class ReviewStore:
             "id": r["id"], "created_at": r["created_at"], "updated_at": r["updated_at"],
             "title": r["title"], "lang": r["lang"], "level": r["level"],
             "kind": r["kind"], "status": r["status"], "faithful": _ub(r["faithful"]),
+            "created_by": r["created_by"], "created_by_name": r["created_by_name"],
         }
 
     def _full(self, r) -> dict:
@@ -103,16 +112,19 @@ class ReviewStore:
         return d
 
     def create_review(self, *, title, source, output, lang="en", level="plain",
-                       kind="text", meta=None, faithful=None, status="in_review") -> dict:
+                       kind="text", meta=None, faithful=None, status="in_review",
+                       created_by=None, created_by_name=None) -> dict:
         if status not in STATUSES:
             raise ValueError(f"Unknown status '{status}'.")
         now = _now()
         with self._conn() as c:
             cur = c.execute(
                 "INSERT INTO reviews(created_at,updated_at,title,lang,level,kind,source,"
-                "output,meta,status,faithful) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                "output,meta,status,faithful,created_by,created_by_name) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (now, now, title or "Untitled", lang, level, kind, source, output,
-                 json.dumps(meta) if meta is not None else None, status, _b(faithful)),
+                 json.dumps(meta) if meta is not None else None, status, _b(faithful),
+                 created_by, created_by_name),
             )
             rid = cur.lastrowid
             c.execute(
@@ -122,8 +134,8 @@ class ReviewStore:
         return self.get_review(rid)
 
     def list_reviews(self, status=None) -> list[dict]:
-        q = ("SELECT id,created_at,updated_at,title,lang,level,kind,status,faithful "
-             "FROM reviews")
+        q = ("SELECT id,created_at,updated_at,title,lang,level,kind,status,faithful,"
+             "created_by,created_by_name FROM reviews")
         args: tuple = ()
         if status:
             q += " WHERE status=?"

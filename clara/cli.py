@@ -14,6 +14,7 @@ import argparse
 import json
 import sys
 
+from .auth import AuthStore
 from .easyread import easy_read
 from .export import document_html
 from .ingest import from_url, ingest_file
@@ -166,6 +167,29 @@ def cmd_review_status(args) -> int:
     return 0
 
 
+def cmd_user_add(args) -> int:
+    import getpass
+
+    password = args.password or getpass.getpass("Password: ")
+    try:
+        u = AuthStore().create_user(args.username, password, role=args.role)
+    except ValueError as e:
+        print(e)
+        return 1
+    print(f"created user '{u['username']}' (role {u['role']})")
+    return 0
+
+
+def cmd_user_list(args) -> int:
+    users = AuthStore().list_users()
+    if not users:
+        print("No users.")
+        return 0
+    for u in users:
+        print(f'{u["id"]:<4} {u["role"]:<10} {u["username"]}')
+    return 0
+
+
 def _add_io_args(p) -> None:
     src = p.add_mutually_exclusive_group()
     src.add_argument("--text", help="Text to process (default: read stdin)")
@@ -221,6 +245,16 @@ def main(argv=None) -> int:
     rt.add_argument("id", type=int)
     rt.add_argument("status", help="draft|in_review|approved|rejected|changes_requested")
     rt.set_defaults(func=cmd_review_status)
+
+    u = sub.add_parser("user", help="Manage review users (for CLARA_AUTH)")
+    usub = u.add_subparsers(dest="user_cmd", required=True)
+    ua = usub.add_parser("add", help="Create a user (the first user becomes admin)")
+    ua.add_argument("username")
+    ua.add_argument("--password", default=None, help="Password (prompted if omitted)")
+    ua.add_argument("--role", default=None, choices=["admin", "reviewer"])
+    ua.set_defaults(func=cmd_user_add)
+    ul = usub.add_parser("list", help="List users")
+    ul.set_defaults(func=cmd_user_list)
 
     args = parser.parse_args(argv)
     return args.func(args)

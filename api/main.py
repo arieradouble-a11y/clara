@@ -15,12 +15,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 import base64
 
+from clara.auth import AuthStore, auth_enabled, bearer_token
 from clara.easyread import easy_read
 from clara.export import document_html, document_pdf
 from clara.ingest import from_url, ingest_bytes
@@ -42,6 +43,18 @@ app = FastAPI(title="Clara", description="Verified plain-language rewriting.")
 
 _INDEX = Path(__file__).resolve().parent.parent / "web" / "index.html"
 _reviews = ReviewStore()
+_auth = AuthStore()
+
+
+def current_user(authorization: str | None = Header(default=None)) -> dict | None:
+    """Resolve the caller. When auth is off, returns None (endpoints run
+    anonymously). When on, a valid bearer token is required or it's a 401."""
+    if not auth_enabled():
+        return None
+    user = _auth.user_for_token(bearer_token(authorization))
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return user
 
 
 class SimplifyRequest(BaseModel):
@@ -155,37 +168,79 @@ def export_endpoint(req: ExportRequest):
                     headers={"Content-Disposition": 'attachment; filename="clara.html"'})
 
 
+class Credentials(BaseModel):
+    username: str
+    password: str
+
+
+@app.get("/auth/status")
+def auth_status(authorization: str | None = Header(default=None)) -> dict:
+    user = _auth.user_for_token(bearer_token(authorization)) if auth_enabled() else None
+    return {"enabled": auth_enabled(), "users": _auth.count_users(), "user": user}
+
+
+@app.post("/auth/register")
+def auth_register(req: Credentials):
+    if not auth_enabled():
+        return JSONResponse({"error": "Authentication is not enabled."}, status_code=400)
+    if _auth.count_users() > 0:
+        return JSONResponse({"error": "Registration is closed. Ask an admin to add your account."},
+                            status_code=403)
+    try:
+        _auth.create_user(req.username, req.password)  # first user bootstraps admin
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    return _auth.login(req.username, req.password)
+
+
+@app.post("/auth/login")
+def auth_login(req: Credentials):
+    if not auth_enabled():
+        return JSONResponse({"error": "Authentication is not enabled."}, status_code=400)
+    result = _auth.login(req.username, req.password)
+    return result or JSONResponse({"error": "Invalid username or password."}, status_code=401)
+
+
+@app.post("/auth/logout")
+def auth_logout(authorization: str | None = Header(default=None)) -> dict:
+    _auth.logout(bearer_token(authorization))
+    return {"ok": True}
+
+
 @app.post("/reviews/create")
-def reviews_create(payload: dict):
+def reviews_create(payload: dict, user: dict | None = Depends(current_user)):
     try:
         return _reviews.create_review(
             title=payload.get("title", "Untitled"), source=payload.get("source", ""),
             output=payload.get("output", ""), lang=payload.get("lang", "en"),
             level=payload.get("level", "plain"), kind=payload.get("kind", "text"),
             meta=payload.get("meta"), faithful=payload.get("faithful"),
-            status=payload.get("status", "in_review"))
+            status=payload.get("status", "in_review"),
+            created_by=user["id"] if user else None,
+            created_by_name=user["username"] if user else payload.get("created_by_name"))
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
 @app.post("/reviews/list")
-def reviews_list(payload: dict):
+def reviews_list(payload: dict, user: dict | None = Depends(current_user)):
     return {"reviews": _reviews.list_reviews(status=payload.get("status"))}
 
 
 @app.post("/reviews/get")
-def reviews_get(payload: dict):
+def reviews_get(payload: dict, user: dict | None = Depends(current_user)):
     return _reviews.get_review(payload.get("id")) or JSONResponse({"error": "not found"}, status_code=404)
 
 
 @app.post("/reviews/comment")
-def reviews_comment(payload: dict):
-    r = _reviews.add_comment(payload.get("id"), payload.get("author"), payload.get("body", ""))
+def reviews_comment(payload: dict, user: dict | None = Depends(current_user)):
+    author = user["username"] if user else payload.get("author")
+    r = _reviews.add_comment(payload.get("id"), author, payload.get("body", ""))
     return r or JSONResponse({"error": "not found"}, status_code=404)
 
 
 @app.post("/reviews/status")
-def reviews_status(payload: dict):
+def reviews_status(payload: dict, user: dict | None = Depends(current_user)):
     try:
         r = _reviews.set_status(payload.get("id"), payload.get("status"))
     except ValueError as e:
@@ -194,7 +249,7 @@ def reviews_status(payload: dict):
 
 
 @app.post("/reviews/revision")
-def reviews_revision(payload: dict):
+def reviews_revision(payload: dict, user: dict | None = Depends(current_user)):
     r = _reviews.add_revision(payload.get("id"), payload.get("output", ""),
                               note=payload.get("note"), faithful=payload.get("faithful"))
     return r or JSONResponse({"error": "not found"}, status_code=404)

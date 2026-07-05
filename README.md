@@ -228,6 +228,22 @@ State lives in a stdlib-sqlite store (`clara/review.py`, default
 `~/.clara/reviews.db`, override with `CLARA_DB`). Statuses: draft, in_review,
 approved, rejected, changes_requested. Every revision is versioned.
 
+### Multi-user
+
+Reviews are single-user by default. Set `CLARA_AUTH=1` to require a login: the
+review endpoints then need a bearer token, and reviews and comments are
+attributed to the signed-in user.
+
+```bash
+CLARA_AUTH=1 clara user add alice --password ...   # first user becomes admin
+# the web UI then shows a login; POST /auth/login returns a bearer token
+```
+
+Passwords are hashed with stdlib pbkdf2 (no external dependency); sessions are
+opaque tokens in the same sqlite DB. Registration is open only for the first
+user (bootstrap); after that, add users with `clara user add`. The engine
+endpoints (simplify/verify/…) never require auth.
+
 ---
 
 ## LLM providers
@@ -312,7 +328,7 @@ Adding a language is one self-contained file plus a line in
 - [x] Ingestion: text / HTML / URL (stdlib) + PDF / DOCX (optional `[ingest]`)
 - [x] LLM-based semantic faithfulness check (opt-in, on top of deterministic)
 - [x] Language packs: English + Russian (add one in `clara/lang/`)
-- [x] Review workflow: versions, comments, status sign-off (sqlite store)
+- [x] Review workflow: versions, comments, status sign-off; optional multi-user auth
 
 ---
 

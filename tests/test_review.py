@@ -63,3 +63,10 @@ def test_delete(store):
     assert store.delete_review(r["id"]) is True
     assert store.get_review(r["id"]) is None
     assert store.delete_review(r["id"]) is False
+
+
+def test_created_by_attribution(store):
+    r = store.create_review(title="A", source="s", output="o", created_by=5, created_by_name="alice")
+    assert r["created_by"] == 5
+    assert r["created_by_name"] == "alice"
+    assert store.list_reviews()[0]["created_by_name"] == "alice"

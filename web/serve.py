@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # make 'clara' importable
 
+from clara.auth import AuthStore, auth_enabled, bearer_token  # noqa: E402
 from clara.easyread import easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
@@ -41,6 +42,7 @@ from clara.verify import verify  # noqa: E402
 
 INDEX = Path(__file__).resolve().parent / "index.html"
 _reviews = ReviewStore()
+_auth = AuthStore()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -64,6 +66,16 @@ class Handler(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length", 0))
         return json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
 
+    def _require_user(self):
+        """Return (user_or_None, ok). ok=False means a 401 was already sent."""
+        if not auth_enabled():
+            return None, True
+        user = _auth.user_for_token(bearer_token(self.headers.get("Authorization")))
+        if not user:
+            self._send_json({"error": "Authentication required"}, 401)
+            return None, False
+        return user, True
+
     def do_GET(self):
         if self.path in ("/", "/index.html"):
             body = INDEX.read_bytes()
@@ -74,6 +86,9 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         elif self.path == "/health":
             self._send_json({"status": "ok"})
+        elif self.path == "/auth/status":
+            user = _auth.user_for_token(bearer_token(self.headers.get("Authorization"))) if auth_enabled() else None
+            self._send_json({"enabled": auth_enabled(), "users": _auth.count_users(), "user": user})
         else:
             self._send_json({"error": "not found"}, 404)
 
@@ -121,25 +136,64 @@ class Handler(BaseHTTPRequestHandler):
                     self._send_json({"error": str(e)}, 501)
                     return
                 self._send_json({"text": res.text, "title": res.title, "kind": res.kind})
+            elif self.path == "/auth/register":
+                if not auth_enabled():
+                    self._send_json({"error": "Authentication is not enabled."}, 400)
+                elif _auth.count_users() > 0:
+                    self._send_json({"error": "Registration is closed. Ask an admin to add your account."}, 403)
+                else:
+                    try:
+                        _auth.create_user(data.get("username", ""), data.get("password", ""))
+                    except ValueError as e:
+                        self._send_json({"error": str(e)}, 400)
+                    else:
+                        self._send_json(_auth.login(data.get("username", ""), data.get("password", "")))
+            elif self.path == "/auth/login":
+                if not auth_enabled():
+                    self._send_json({"error": "Authentication is not enabled."}, 400)
+                else:
+                    result = _auth.login(data.get("username", ""), data.get("password", ""))
+                    self._send_json(result) if result else self._send_json({"error": "Invalid username or password."}, 401)
+            elif self.path == "/auth/logout":
+                _auth.logout(bearer_token(self.headers.get("Authorization")))
+                self._send_json({"ok": True})
             elif self.path == "/reviews/create":
+                user, ok = self._require_user()
+                if not ok:
+                    return
                 try:
                     self._send_json(_reviews.create_review(
                         title=data.get("title", "Untitled"), source=data.get("source", ""),
                         output=data.get("output", ""), lang=data.get("lang", "en"),
                         level=data.get("level", "plain"), kind=data.get("kind", "text"),
                         meta=data.get("meta"), faithful=data.get("faithful"),
-                        status=data.get("status", "in_review")))
+                        status=data.get("status", "in_review"),
+                        created_by=user["id"] if user else None,
+                        created_by_name=user["username"] if user else data.get("created_by_name")))
                 except ValueError as e:
                     self._send_json({"error": str(e)}, 400)
             elif self.path == "/reviews/list":
+                user, ok = self._require_user()
+                if not ok:
+                    return
                 self._send_json({"reviews": _reviews.list_reviews(status=data.get("status"))})
             elif self.path == "/reviews/get":
+                user, ok = self._require_user()
+                if not ok:
+                    return
                 r = _reviews.get_review(data.get("id"))
                 self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
             elif self.path == "/reviews/comment":
-                r = _reviews.add_comment(data.get("id"), data.get("author"), data.get("body", ""))
+                user, ok = self._require_user()
+                if not ok:
+                    return
+                author = user["username"] if user else data.get("author")
+                r = _reviews.add_comment(data.get("id"), author, data.get("body", ""))
                 self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
             elif self.path == "/reviews/status":
+                user, ok = self._require_user()
+                if not ok:
+                    return
                 try:
                     r = _reviews.set_status(data.get("id"), data.get("status"))
                 except ValueError as e:
@@ -147,6 +201,9 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
             elif self.path == "/reviews/revision":
+                user, ok = self._require_user()
+                if not ok:
+                    return
                 r = _reviews.add_revision(data.get("id"), data.get("output", ""),
                                           note=data.get("note"), faithful=data.get("faithful"))
                 self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
