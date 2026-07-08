@@ -2,24 +2,40 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# The import package and CLI stay `clara`; the PyPI distribution is `clara-plain`
+# because `clara` is taken (an unrelated 2019 chit-chat utility).
 [project]
-name = "clara"
+name = "clara-plain"
 version = "0.1.0"
 description = "Turn complex text into verified plain language."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+authors = [{ name = "Clara contributors" }]
 keywords = ["accessibility", "plain-language", "easy-read", "a11y", "cognitive"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "Intended Audience :: Healthcare Industry",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Text Processing :: Linguistic",
+    "Topic :: Adaptive Technologies",
 ]
 dependencies = [
     "httpx>=0.24",
 ]
+
+[project.urls]
+Homepage = "https://github.com/arieradouble-a11y/clara"
+Repository = "https://github.com/arieradouble-a11y/clara"
+Issues = "https://github.com/arieradouble-a11y/clara/issues"
+Changelog = "https://github.com/arieradouble-a11y/clara/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 api = ["fastapi>=0.100", "uvicorn>=0.20"]

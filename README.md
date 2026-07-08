@@ -66,7 +66,11 @@ authoritative*. The interfaces' own accessibility is stated in
 ## Quickstart
 
 ```bash
-git clone <this repo>
+# From PyPI (the distribution is `clara-plain`; the command stays `clara`):
+pip install clara-plain
+
+# …or from source, for development:
+git clone https://github.com/arieradouble-a11y/clara
 cd clara
 pip install -e ".[dev]"
 

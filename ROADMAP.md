@@ -97,8 +97,12 @@ are all **done**.
 
 ## Phase 5 — Distribution
 
-- [ ] **PyPI release.** Check name availability first ("clara" is likely taken;
-  candidate: `clara-plain`). Versioning + CHANGELOG + GitHub Releases.
+- [x] **PyPI release** (prepared). `clara` was taken (a 2019 chit-chat utility),
+  so the distribution is **`clara-plain`** (import + CLI stay `clara`). Metadata,
+  project URLs, classifiers, `CHANGELOG.md`, and a tag-triggered release workflow
+  (`.github/workflows/release.yml`, PyPI Trusted Publishing) are in place; the
+  wheel builds with the data files bundled. Publishing = push a `v*` tag once the
+  PyPI publisher is configured.
 - [ ] **Docker / compose** for the two-process setup (uvicorn + Next) and a
   single-process option (`web/serve.py`).
 - [ ] **CI hardening**: ruff + mypy on the engine, JS syntax check for the
