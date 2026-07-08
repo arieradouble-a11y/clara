@@ -18,27 +18,34 @@ import sys
 from .auth import AuthStore
 from .easyread import easy_read
 from .export import document_html
-from .ingest import from_url, ingest_file
+from .ingest import from_text, from_url, ingest_file
 from .llm import get_check_provider, get_provider
-from .pipeline import simplify_text
+from .pipeline import simplify_structured, simplify_text
+from .structure import block_dict
 from .readability import analyze
 from .review import ReviewStore
 from .semantic import semantic_check
 from .serialize import easyread_dict, easyread_line_dict, readability_dict, result_dict
 
 
-def _read_input(args) -> str:
+def _read_ingest(args):
+    """Ingest the chosen input once, returning the full IngestResult (text +
+    structural blocks), so callers can preserve headings/lists when they want to."""
     ocr = getattr(args, "ocr", "auto")
     if getattr(args, "url", None):
-        return from_url(args.url).text
+        return from_url(args.url)
     if args.text is not None:
-        return args.text
+        return from_text(args.text)
     if args.file:
         res = ingest_file(args.file, ocr=ocr)  # dispatches: txt / pdf / docx / html
         if res.ocr_applied:
             print("(OCR applied — text recovered from a scanned PDF)", file=sys.stderr)
-        return res.text
-    return sys.stdin.read()
+        return res
+    return from_text(sys.stdin.read())
+
+
+def _read_input(args) -> str:
+    return _read_ingest(args).text
 
 
 def _fmt(v) -> str:
@@ -47,7 +54,19 @@ def _fmt(v) -> str:
 
 def cmd_simplify(args) -> int:
     provider = get_provider(args.provider)
-    res = simplify_text(_read_input(args), level=args.level, provider=provider,
+    ing = _read_ingest(args)
+
+    # A structured source (DOCX/HTML with headings/lists) keeps its scaffolding
+    # in the HTML export, unless the reader asks to flatten it.
+    if args.html and ing.blocks and not args.flatten:
+        sres = simplify_structured(ing.blocks, level=args.level, provider=provider,
+                                   grade=args.grade, lang=args.lang)
+        print(document_html(kind="structured", blocks=[block_dict(b) for b in sres.blocks],
+                            lang=args.lang, title=ing.title or "Plain-language document",
+                            footer="Simplified with Clara — assistive, not authoritative."))
+        return 0
+
+    res = simplify_text(ing.text, level=args.level, provider=provider,
                         grade=args.grade, lang=args.lang)
     fr = res.faithfulness
 
@@ -227,6 +246,8 @@ def main(argv=None) -> int:
                    help="Provider for the --semantic check, so a model doesn't grade its own "
                         "rewrite (default: CLARA_CHECK_PROVIDER, else the simplify provider)")
     s.add_argument("--html", action="store_true", help="Output an accessible HTML document")
+    s.add_argument("--flatten", action="store_true",
+                   help="With --html, drop source headings/lists and emit plain paragraphs")
     s.add_argument("--json", action="store_true", help="Machine-readable output")
     s.set_defaults(func=cmd_simplify)
 

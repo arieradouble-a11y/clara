@@ -28,7 +28,7 @@ from clara.export import document_html, document_pdf  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
 from clara.llm import get_check_provider, get_provider  # noqa: E402
 from clara.review import ReviewStore  # noqa: E402
-from clara.pipeline import simplify_text  # noqa: E402
+from clara.pipeline import simplify_structured, simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
 from clara.semantic import semantic_check  # noqa: E402
 from clara.serialize import (  # noqa: E402
@@ -37,7 +37,9 @@ from clara.serialize import (  # noqa: E402
     readability_dict,
     result_dict,
     semantic_dict,
+    structured_dict,
 )
+from clara.structure import block_dict, block_from_dict  # noqa: E402
 from clara.verify import verify  # noqa: E402
 
 INDEX = Path(__file__).resolve().parent / "index.html"
@@ -105,6 +107,17 @@ class Handler(BaseHTTPRequestHandler):
                     lang=data.get("lang", "en"),
                 )
                 self._send_json(result_dict(res))
+            elif self.path == "/simplify_structured":
+                provider = get_provider(data.get("provider"))
+                blocks = [block_from_dict(b) for b in data.get("blocks", [])]
+                res = simplify_structured(
+                    blocks,
+                    level=data.get("level", "plain"),
+                    provider=provider,
+                    grade=data.get("grade"),
+                    lang=data.get("lang", "en"),
+                )
+                self._send_json(structured_dict(res))
             elif self.path == "/verify":
                 source, output = data.get("source", ""), data.get("output", "")
                 lang = data.get("lang", "en")
@@ -137,7 +150,8 @@ class Handler(BaseHTTPRequestHandler):
                     self._send_json({"error": str(e)}, 501)
                     return
                 self._send_json({"text": res.text, "title": res.title, "kind": res.kind,
-                                 "ocr_applied": res.ocr_applied})
+                                 "ocr_applied": res.ocr_applied,
+                                 "blocks": [block_dict(b) for b in res.blocks]})
             elif self.path == "/auth/register":
                 if not auth_enabled():
                     self._send_json({"error": "Authentication is not enabled."}, 400)
@@ -213,6 +227,7 @@ class Handler(BaseHTTPRequestHandler):
                 doc = document_html(title=data.get("title", "Plain-language document"),
                                     lang=data.get("lang", "en"), kind=data.get("kind", "text"),
                                     text=data.get("text"), lines=data.get("lines"),
+                                    blocks=data.get("blocks"),
                                     footer=data.get("footer"),
                                     embed_images=data.get("embed_images", False))
                 if data.get("format") == "pdf":

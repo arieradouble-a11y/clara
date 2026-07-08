@@ -13,10 +13,12 @@ from __future__ import annotations
 
 import io
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.request import Request, urlopen
+
+from .structure import HEADING, LIST_ITEM, PARAGRAPH, Block, blocks_to_text
 
 
 @dataclass
@@ -24,7 +26,8 @@ class IngestResult:
     text: str
     title: str | None = None
     kind: str = "text"
-    ocr_applied: bool = False   # True when text came from OCR (a scanned PDF)
+    ocr_applied: bool = False        # True when text came from OCR (a scanned PDF)
+    blocks: list[Block] = field(default_factory=list)  # headings/lists/paragraphs
 
 
 def _clean(text: str) -> str:
@@ -88,6 +91,76 @@ class _Stripper(HTMLParser):
             self.parts.append(data)
 
 
+class _BlockParser(HTMLParser):
+    """Extract structured blocks (headings, list items, paragraphs) from HTML.
+
+    Complements _Stripper (which yields flat text): this keeps the scaffolding —
+    which heading, which list — so it survives into the simplified output.
+    """
+    _SKIP = _Stripper._SKIP | {"title"}  # <title> text belongs to the doc title, not the body
+    _HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
+    _PARA_BOUNDARY = {"p", "div", "section", "article", "tr", "br", "blockquote"}
+
+    def __init__(self):
+        super().__init__()
+        self.blocks: list[Block] = []
+        self._skip = 0
+        self._buf: list[str] = []
+        self._mode = PARAGRAPH
+        self._level = 0
+        self._lists: list[bool] = []   # stack of ordered? for nested ol/ul
+
+    def _flush(self):
+        text = re.sub(r"\s+", " ", "".join(self._buf)).strip()
+        if text:
+            ordered = self._lists[-1] if (self._mode == LIST_ITEM and self._lists) else False
+            self.blocks.append(Block(type=self._mode, text=text, level=self._level, ordered=ordered))
+        self._buf = []
+        self._mode = PARAGRAPH
+        self._level = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self._SKIP:
+            self._skip += 1
+        elif tag in self._HEADINGS:
+            self._flush()
+            self._mode = HEADING
+            self._level = int(tag[1])
+        elif tag == "li":
+            self._flush()
+            self._mode = LIST_ITEM
+        elif tag in ("ol", "ul"):
+            self._lists.append(tag == "ol")
+        elif tag in self._PARA_BOUNDARY and self._mode == PARAGRAPH:
+            self._flush()
+
+    def handle_endtag(self, tag):
+        if tag in self._SKIP and self._skip:
+            self._skip -= 1
+        elif tag in self._HEADINGS or tag == "li":
+            self._flush()
+        elif tag in ("ol", "ul"):
+            if self._lists:
+                self._lists.pop()
+        elif tag in self._PARA_BOUNDARY and self._mode == PARAGRAPH:
+            self._flush()
+
+    def handle_data(self, data):
+        if self._skip == 0:
+            self._buf.append(data)
+
+    def close(self):
+        super().close()
+        self._flush()
+
+
+def _html_blocks(html: str) -> list[Block]:
+    p = _BlockParser()
+    p.feed(html)
+    p.close()
+    return p.blocks
+
+
 def _html_title(html: str) -> str | None:
     m = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
     return m.group(1).strip() if m else None
@@ -101,16 +174,18 @@ def _strip_html(html: str) -> tuple[str, str | None]:
 
 
 def from_html(html: str, title: str | None = None) -> IngestResult:
+    blocks = _html_blocks(html)  # structure, kept regardless of the text extractor
     # Prefer trafilatura for clean main-content extraction; fall back to stdlib.
     try:
         import trafilatura
         extracted = trafilatura.extract(html, include_comments=False, include_tables=True)
         if extracted:
-            return IngestResult(text=_clean(extracted), title=title or _html_title(html), kind="html")
+            return IngestResult(text=_clean(extracted), title=title or _html_title(html),
+                                kind="html", blocks=blocks)
     except Exception:
         pass
     text, found_title = _strip_html(html)
-    return IngestResult(text=text, title=title or found_title, kind="html")
+    return IngestResult(text=text, title=title or found_title, kind="html", blocks=blocks)
 
 
 def from_url(url: str) -> IngestResult:
@@ -206,6 +281,34 @@ def from_pdf(source, *, ocr: str = "auto") -> IngestResult:
 
 # --- DOCX ---------------------------------------------------------------------
 
+def _docx_block(paragraph) -> Block | None:
+    """Classify one DOCX paragraph into a Block from its style name."""
+    text = paragraph.text.strip()
+    if not text:
+        return None
+    name = (paragraph.style.name or "").lower() if paragraph.style else ""
+    m = re.search(r"heading\s*(\d)", name)
+    if name.startswith("title"):
+        return Block(type=HEADING, text=text, level=1)
+    if m:
+        return Block(type=HEADING, text=text, level=int(m.group(1)))
+    if "list number" in name or name.startswith("list number"):
+        return Block(type=LIST_ITEM, text=text, ordered=True)
+    if "list bullet" in name or name.startswith("list") or _docx_is_numbered(paragraph):
+        return Block(type=LIST_ITEM, text=text, ordered="number" in name)
+    return Block(type=PARAGRAPH, text=text)
+
+
+def _docx_is_numbered(paragraph) -> bool:
+    """A paragraph with explicit numbering (numPr) is a list item even when its
+    style name is generic (Word applies numbering outside 'List *' styles too)."""
+    try:
+        ppr = paragraph._p.pPr
+        return ppr is not None and ppr.numPr is not None
+    except Exception:
+        return False
+
+
 def from_docx(source) -> IngestResult:
     try:
         import docx
@@ -213,14 +316,9 @@ def from_docx(source) -> IngestResult:
         raise RuntimeError('DOCX ingestion needs python-docx: pip install "clara[ingest]".') from e
     stream = io.BytesIO(source) if isinstance(source, (bytes, bytearray)) else source
     document = docx.Document(stream)
-    paragraphs = [p.text.strip() for p in document.paragraphs if p.text.strip()]
-    title = None
-    for p in document.paragraphs:
-        name = (p.style.name or "").lower() if p.style else ""
-        if p.text.strip() and (name.startswith("title") or name.startswith("heading")):
-            title = p.text.strip()
-            break
-    return IngestResult(text=_clean("\n\n".join(paragraphs)), title=title, kind="docx")
+    blocks = [b for b in (_docx_block(p) for p in document.paragraphs) if b is not None]
+    title = next((b.text for b in blocks if b.type == HEADING), None)
+    return IngestResult(text=_clean(blocks_to_text(blocks)), title=title, kind="docx", blocks=blocks)
 
 
 # --- Dispatch -----------------------------------------------------------------

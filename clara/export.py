@@ -22,7 +22,11 @@ _CSS = (
     "font:1.15rem/1.6 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}"
     "main{max-width:40em;margin:0 auto;padding:2rem 1.25rem 4rem}"
     "h1{font-size:1.6rem;line-height:1.25;margin:0 0 1.25rem}"
+    "h2{font-size:1.35rem;line-height:1.3;margin:2rem 0 .75rem}"
+    "h3{font-size:1.15rem;line-height:1.3;margin:1.5rem 0 .5rem}"
     "p{margin:0 0 1rem}"
+    "ul,ol{margin:0 0 1rem;padding-left:1.5rem}"
+    "li{margin:0 0 .5rem}"
     "ol.easyread{list-style:none;margin:0;padding:0}"
     "ol.easyread li{display:flex;gap:1rem;align-items:center;padding:.75rem;"
     "border:1px solid var(--line);border-radius:12px;margin:0 0 .75rem}"
@@ -37,6 +41,44 @@ _CSS = (
 def _paragraphs_html(text: str) -> str:
     parts = [p.strip() for p in (text or "").replace("\r\n", "\n").split("\n") if p.strip()]
     return "\n".join(f"<p>{_html.escape(p)}</p>" for p in parts) or "<p></p>"
+
+
+def _blocks_html(blocks: list) -> str:
+    """Render structured blocks (dicts: type/text/level/ordered) to semantic HTML.
+
+    Content headings map to <h2>/<h3> (the document title owns the single <h1>),
+    and runs of consecutive list items collapse into one <ul> or <ol>.
+    """
+    out: list[str] = []
+    list_open: str | None = None  # "ul" | "ol" while inside a list run
+
+    def close_list():
+        nonlocal list_open
+        if list_open:
+            out.append(f"</{list_open}>")
+            list_open = None
+
+    for b in blocks or []:
+        btype = b.get("type", "paragraph")
+        text = _html.escape((b.get("text") or "").strip())
+        if not text:
+            continue
+        if btype == "list_item":
+            want = "ol" if b.get("ordered") else "ul"
+            if list_open != want:
+                close_list()
+                out.append(f"<{want}>")
+                list_open = want
+            out.append(f"<li>{text}</li>")
+            continue
+        close_list()
+        if btype == "heading":
+            tag = "h2" if int(b.get("level") or 2) <= 2 else "h3"
+            out.append(f"<{tag}>{text}</{tag}>")
+        else:
+            out.append(f"<p>{text}</p>")
+    close_list()
+    return "\n".join(out) or "<p></p>"
 
 
 def _easyread_html(lines: list, embed_images: bool = False) -> str:
@@ -64,10 +106,16 @@ def document_html(
     kind: str = "text",
     text: str | None = None,
     lines: list | None = None,
+    blocks: list | None = None,
     footer: str | None = None,
     embed_images: bool = False,
 ) -> str:
-    body = _easyread_html(lines, embed_images) if kind == "easyread" else _paragraphs_html(text or "")
+    if kind == "easyread":
+        body = _easyread_html(lines, embed_images)
+    elif kind == "structured":
+        body = _blocks_html(blocks or [])
+    else:
+        body = _paragraphs_html(text or "")
     foot = f"<footer>{_html.escape(footer)}</footer>\n" if footer else ""
     return (
         f'<!DOCTYPE html>\n<html lang="{_html.escape(lang)}">\n<head>\n'

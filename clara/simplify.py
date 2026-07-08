@@ -16,6 +16,7 @@ import re
 from .lang import get_pack
 from .llm import get_provider
 from .llm.base import LLMProvider
+from .structure import HEADING, Block
 
 # A long document must be simplified in pieces — one giant call gets truncated by
 # the model's max_tokens mid-document. We split on paragraph (then sentence)
@@ -117,3 +118,34 @@ def simplify(
     if len(parts) <= 1:
         return provider.complete(system, text).strip()
     return "\n\n".join(provider.complete(system, part).strip() for part in parts)
+
+
+def simplify_blocks(
+    blocks: list[Block],
+    level: str = "plain",
+    provider: LLMProvider | None = None,
+    grade: int | None = None,
+    lang: str = "en",
+    max_chars: int = _CHUNK_CHARS,
+) -> list[Block]:
+    """Simplify a structured document block by block, preserving the scaffolding.
+
+    Each block's text is rewritten under the same hard rules, but its type, level
+    and list-ordering are carried through unchanged — so a heading stays a
+    heading and a numbered step stays a numbered step. Headings are short and
+    rarely need simplifying, so they're passed through verbatim to avoid an LLM
+    call inflating a two-word label into a sentence.
+    """
+    provider = provider or get_provider()
+    system = build_system(level, grade, lang)
+    out: list[Block] = []
+    for b in blocks:
+        text = b.text.strip()
+        if not text or b.type == HEADING:
+            out.append(Block(type=b.type, text=text, level=b.level, ordered=b.ordered))
+            continue
+        # A paragraph can be long enough to need chunking; a list item won't be.
+        parts = chunk_text(text, max_chars)
+        simplified = "\n\n".join(provider.complete(system, p).strip() for p in parts) if parts else ""
+        out.append(Block(type=b.type, text=simplified.strip(), level=b.level, ordered=b.ordered))
+    return out

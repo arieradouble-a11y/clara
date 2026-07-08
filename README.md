@@ -194,8 +194,12 @@ clara easyread --url https://example.gov/notice --lang en
   default (only fires when the PDF looks scanned), with `--ocr force` and
   `--ocr off`. Without the extra, `auto` degrades quietly and `force` says so.
 
-Paragraph structure is preserved (blocks separated by blank lines). PDF text is
-extracted best-effort — PDFs are a visual format, so line breaks can be rough.
+Structure is preserved: from HTML and DOCX, headings and lists are carried
+through simplification into the exported HTML/PDF (`<h2>`/`<h3>`, `<ul>`/`<ol>`)
+instead of flattening to paragraphs — run `clara simplify --file notice.docx
+--html` (add `--flatten` to opt out). Readability and faithfulness still run on
+the flattened text. PDF text is extracted best-effort — PDFs are a visual format,
+so line breaks can be rough.
 
 ---
 
@@ -343,7 +347,8 @@ and validation with target readers.
       (zero-dependency dev server; a full Next.js app is a later evolution)
 - [x] Easy Read: pictogram pairing (ARASAAC), one idea per line
 - [x] Accessible output: semantic HTML (always) + tagged PDF/UA via WeasyPrint
-- [x] Ingestion: text / HTML / URL (stdlib) + PDF / DOCX (optional `[ingest]`)
+- [x] Ingestion: text / HTML / URL (stdlib) + PDF / DOCX (optional `[ingest]`),
+      scanned-PDF OCR (optional `[ocr]`), with headings/lists preserved through export
 - [x] LLM-based semantic faithfulness check (opt-in, on top of deterministic)
 - [x] Language packs: English + Russian (add one in `clara/lang/`)
 - [x] Review workflow: versions, comments, status sign-off; optional multi-user auth

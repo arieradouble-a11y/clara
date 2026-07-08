@@ -3,9 +3,10 @@ one place so the wire format never drifts between them."""
 from __future__ import annotations
 
 from .easyread import EasyReadLine, EasyReadResult
-from .pipeline import SimplifyResult
+from .pipeline import SimplifyResult, StructuredResult
 from .readability import Readability
 from .semantic import SemanticReport
+from .structure import block_dict
 from .verify import FaithfulnessReport
 
 
@@ -34,6 +35,17 @@ def result_dict(res: SimplifyResult) -> dict:
         "level": res.level,
         "original": res.original,
         "simplified": res.simplified,
+        "source_readability": readability_dict(res.source_readability),
+        "output_readability": readability_dict(res.output_readability),
+        "faithfulness": faithfulness_dict(res.faithfulness),
+    }
+
+
+def structured_dict(res: StructuredResult) -> dict:
+    return {
+        "level": res.level,
+        "original": res.original,
+        "blocks": [block_dict(b) for b in res.blocks],
         "source_readability": readability_dict(res.source_readability),
         "output_readability": readability_dict(res.output_readability),
         "faithfulness": faithfulness_dict(res.faithfulness),

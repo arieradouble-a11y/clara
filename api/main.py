@@ -27,7 +27,7 @@ from clara.export import document_html, document_pdf
 from clara.ingest import from_url, ingest_bytes
 from clara.llm import get_check_provider, get_provider
 from clara.review import ReviewStore
-from clara.pipeline import simplify_text
+from clara.pipeline import simplify_structured, simplify_text
 from clara.readability import analyze
 from clara.semantic import semantic_check
 from clara.serialize import (
@@ -36,7 +36,9 @@ from clara.serialize import (
     readability_dict,
     result_dict,
     semantic_dict,
+    structured_dict,
 )
+from clara.structure import block_dict, block_from_dict
 from clara.verify import verify
 
 app = FastAPI(title="Clara", description="Verified plain-language rewriting.")
@@ -65,6 +67,14 @@ class SimplifyRequest(BaseModel):
     provider: str | None = None
 
 
+class StructuredSimplifyRequest(BaseModel):
+    blocks: list[dict]            # from /ingest — headings, list items, paragraphs
+    level: str = "plain"
+    grade: int | None = None
+    lang: str = "en"
+    provider: str | None = None
+
+
 class VerifyRequest(BaseModel):
     source: str
     output: str
@@ -86,11 +96,12 @@ class SemanticRequest(BaseModel):
 
 class ExportRequest(BaseModel):
     format: str = "html"          # "html" | "pdf"
-    kind: str = "text"            # "text" | "easyread"
+    kind: str = "text"            # "text" | "easyread" | "structured"
     title: str = "Plain-language document"
     lang: str = "en"
     text: str | None = None
     lines: list[dict] | None = None
+    blocks: list[dict] | None = None   # for kind="structured"
     footer: str | None = None
     embed_images: bool = False    # inline pictograms as data URIs (offline)
 
@@ -114,6 +125,14 @@ def simplify_endpoint(req: SimplifyRequest) -> dict:
     provider = get_provider(req.provider) if req.provider else None
     res = simplify_text(req.text, level=req.level, grade=req.grade, lang=req.lang, provider=provider)
     return result_dict(res)
+
+
+@app.post("/simplify_structured")
+def simplify_structured_endpoint(req: StructuredSimplifyRequest) -> dict:
+    provider = get_provider(req.provider) if req.provider else None
+    blocks = [block_from_dict(b) for b in req.blocks]
+    res = simplify_structured(blocks, level=req.level, grade=req.grade, lang=req.lang, provider=provider)
+    return structured_dict(res)
 
 
 @app.post("/verify")
@@ -152,13 +171,14 @@ def ingest_endpoint(req: IngestRequest):
         return JSONResponse({"error": str(e)}, status_code=501)
     except Exception as e:
         return JSONResponse({"error": f"{type(e).__name__}: {e}"}, status_code=400)
-    return {"text": res.text, "title": res.title, "kind": res.kind, "ocr_applied": res.ocr_applied}
+    return {"text": res.text, "title": res.title, "kind": res.kind,
+            "ocr_applied": res.ocr_applied, "blocks": [block_dict(b) for b in res.blocks]}
 
 
 @app.post("/export")
 def export_endpoint(req: ExportRequest):
     doc = document_html(title=req.title, lang=req.lang, kind=req.kind,
-                        text=req.text, lines=req.lines, footer=req.footer,
+                        text=req.text, lines=req.lines, blocks=req.blocks, footer=req.footer,
                         embed_images=req.embed_images)
     if req.format == "pdf":
         try:

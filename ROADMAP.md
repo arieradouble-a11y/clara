@@ -36,15 +36,17 @@ identifier suffixes remain (lower priority — see below).
   must be caught (recall). No model needed; it guards the deterministic layer in
   CI. Started at 15 cases across en/ru/es/de — grow it from real documents.
 
-## Phase 2 — Real documents in, real documents out
+## Phase 2 — Real documents in, real documents out — done
 
 - [x] **OCR for scanned PDFs** (`ocrmypdf`/tesseract behind an `[ocr]` extra) —
   official notices in the wild are very often scans. `from_pdf` detects a missing
   text layer (`_needs_ocr`) and OCRs it; `--ocr auto|force|off`. Degrades honestly
   when the extra isn't installed.
-- [ ] **Structure preservation.** Headings and lists from DOCX/HTML currently
-  flatten to paragraphs; carry them through simplification into the exported
-  HTML/PDF (h2/h3, ul/ol).
+- [x] **Structure preservation.** Headings and lists from DOCX/HTML are carried
+  through simplification into the exported HTML/PDF (h2/h3, ul/ol) via a `Block`
+  model (`clara/structure.py`) instead of flattening to paragraphs. `simplify
+  --html` preserves structure automatically; `--flatten` opts out. Faithfulness
+  and readability still run on the flattened text.
 - [x] **Semantic check with a second opinion.** The semantic faithfulness check
   can run on a *different* provider than the one that simplified
   (anti-self-grading) via `CLARA_CHECK_PROVIDER` / `--check-provider`. Falls back
