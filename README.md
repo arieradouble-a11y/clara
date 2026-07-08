@@ -137,6 +137,20 @@ uvicorn api.main:app --reload
 # POST /verify      {"source": "...", "output": "..."}   (no LLM, offline)
 ```
 
+### With Docker
+
+```bash
+# Single process — reference UI + API in one container:
+docker build -t clara . && docker run -p 8000:8000 clara      # http://localhost:8000
+
+# Two processes — FastAPI backend + the Next.js app:
+docker compose up --build                                      # http://localhost:3000
+```
+
+Set a real model with env, e.g. `CLARA_PROVIDER=anthropic ANTHROPIC_API_KEY=…
+docker compose up`. (The default image leaves out the `pdf`/`ocr` extras, which
+need system libraries.)
+
 ---
 
 ## Output levels

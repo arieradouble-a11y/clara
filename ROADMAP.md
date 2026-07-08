@@ -103,8 +103,10 @@ are all **done**.
   (`.github/workflows/release.yml`, PyPI Trusted Publishing) are in place; the
   wheel builds with the data files bundled. Publishing = push a `v*` tag once the
   PyPI publisher is configured.
-- [ ] **Docker / compose** for the two-process setup (uvicorn + Next) and a
-  single-process option (`web/serve.py`).
+- [x] **Docker / compose.** A `Dockerfile` (engine + API) whose default command
+  runs the single-process reference server; a multi-stage `web-next/Dockerfile`
+  (Next standalone output); and a `docker-compose.yml` wiring uvicorn + Next
+  (`CLARA_API` proxy). `.dockerignore` for both.
 - [ ] **CI hardening**: ruff + mypy on the engine, JS syntax check for the
   reference UI. **good first issue**
 - [ ] **Public demo instance** (mock or rate-limited provider) so people can
