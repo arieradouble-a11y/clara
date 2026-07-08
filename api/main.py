@@ -31,6 +31,7 @@ from clara.auth import (
 )
 from clara.easyread import easy_read
 from clara.export import document_html, document_pdf
+from clara.i18n import ui_strings
 from clara.ingest import from_url, ingest_bytes
 from clara.llm import get_check_provider, get_provider
 from clara.pictograms import get_symbol_provider
@@ -336,6 +337,11 @@ def reviews_revision(payload: dict, user: dict | None = Depends(current_user)):
     r = _reviews.add_revision(payload.get("id"), payload.get("output", ""),
                               note=payload.get("note"), faithful=payload.get("faithful"))
     return r or JSONResponse({"error": "not found"}, status_code=404)
+
+
+@app.get("/i18n")
+def i18n() -> dict:
+    return ui_strings()
 
 
 @app.get("/health")

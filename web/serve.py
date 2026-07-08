@@ -32,6 +32,7 @@ from clara.auth import (  # noqa: E402
 )
 from clara.easyread import easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
+from clara.i18n import ui_strings  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
 from clara.llm import get_check_provider, get_provider  # noqa: E402
 from clara.pictograms import get_symbol_provider  # noqa: E402
@@ -96,6 +97,8 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         elif self.path == "/health":
             self._send_json({"status": "ok"})
+        elif self.path == "/i18n":
+            self._send_json(ui_strings())
         elif self.path == "/auth/status":
             user = _auth.user_for_token(bearer_token(self.headers.get("Authorization"))) if auth_enabled() else None
             self._send_json({"enabled": auth_enabled(), "users": _auth.count_users(), "user": user})
