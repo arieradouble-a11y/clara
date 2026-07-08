@@ -54,6 +54,15 @@
   .panel h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase;
     letter-spacing: .04em; color: var(--muted); }
   .panel .body { white-space: pre-wrap; }
+  .panel .body.structured { white-space: normal; }
+  .panel .body.structured h2, .panel .body.structured h3 {
+    text-transform: none; letter-spacing: normal; color: var(--text); font-weight: 700; }
+  .panel .body.structured h2 { font-size: 18px; margin: 16px 0 6px; }
+  .panel .body.structured h3 { font-size: 16px; margin: 12px 0 4px; }
+  .panel .body.structured p { margin: 0 0 10px; }
+  .panel .body.structured ul, .panel .body.structured ol { margin: 0 0 10px; padding-left: 22px; }
+  .panel .body.structured li { margin: 3px 0; }
+  .panel .body.structured > :first-child { margin-top: 0; }
   .metrics { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
   .badge { border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 15px; }
   .badge strong { font-variant-numeric: tabular-nums; }
@@ -153,6 +162,9 @@
       </div>
       <button class="btn" id="run-simplify">Simplify</button>
       <button class="btn secondary" id="ex-simplify" type="button">Load example</button>
+      <label id="structure-wrap" style="display:none; align-items:center; gap:6px; margin:0; font-weight:400; color:var(--muted)">
+        <input type="checkbox" id="preserve-structure" checked /> Preserve headings &amp; lists
+      </label>
     </div>
     <p class="hint">Runs on the server's configured model. With the default <code>mock</code>
        provider it echoes the text — set <code>CLARA_PROVIDER</code> for real rewriting.</p>
@@ -248,8 +260,42 @@ const $ = (id) => document.getElementById(id);
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 let lastResult = null;  // {source, output, lang} for the optional AI semantic check
-let lastExport = null;  // {kind, lang, title, text|lines, footer} for accessible export
+let lastExport = null;  // {kind, lang, title, text|lines|blocks, footer} for accessible export
 let lastReview = null;  // payload for "Save to review"
+let ingestedBlocks = null;  // structural blocks from the last import (HTML/DOCX), if any
+
+// Mirror the server's export._blocks_html: content headings -> h2/h3 (the title
+// owns the sole h1), consecutive list items collapse into one ul/ol.
+function blocksToHtml(blocks) {
+  const out = [];
+  let listOpen = null;
+  const closeList = () => { if (listOpen) { out.push(`</${listOpen}>`); listOpen = null; } };
+  for (const b of blocks || []) {
+    const text = escapeHtml((b.text || "").trim());
+    if (!text) continue;
+    if (b.type === "list_item") {
+      const want = b.ordered ? "ol" : "ul";
+      if (listOpen !== want) { closeList(); out.push(`<${want}>`); listOpen = want; }
+      out.push(`<li>${text}</li>`);
+      continue;
+    }
+    closeList();
+    if (b.type === "heading") {
+      const tag = (b.level || 2) <= 2 ? "h2" : "h3";
+      out.push(`<${tag}>${text}</${tag}>`);
+    } else {
+      out.push(`<p>${text}</p>`);
+    }
+  }
+  closeList();
+  return out.join("") || "<p></p>";
+}
+const blocksToText = (blocks) =>
+  (blocks || []).map((b) => (b.text || "").trim()).filter(Boolean).join("\n\n");
+
+function updateStructureUI() {
+  $("structure-wrap").style.display = (ingestedBlocks && ingestedBlocks.length) ? "flex" : "none";
+}
 const EXPORT_FOOTER = "Simplified with Clara — assistive, not authoritative. Verify against the original.";
 const deriveTitle = (src) => {
   const first = (src || "").split("\n").map((s) => s.trim()).filter(Boolean)[0] || "Untitled";
@@ -267,6 +313,8 @@ $("tab-simplify").onclick = () => setMode("simplify");
 $("tab-check").onclick = () => setMode("check");
 $("tab-reviews").onclick = () => setMode("reviews");
 $("level").onchange = (e) => $("grade-field").classList.toggle("hidden", e.target.value !== "grade");
+// Editing the source by hand invalidates imported structure (blocks no longer match the text).
+$("src").oninput = () => { if (ingestedBlocks) { ingestedBlocks = null; updateStructureUI(); } };
 
 function showError(msg) {
   const el = $("error");
@@ -313,6 +361,8 @@ function renderFaith(f) {
 function renderResult({ original, output, srcR, outR, faith, labelB, level }) {
   $("view-standard").classList.remove("hidden");
   $("view-easyread").classList.add("hidden");
+  $("outA").classList.remove("structured");
+  $("outB").classList.remove("structured");
   $("outA").textContent = original;
   $("outB").textContent = output;
   $("labelB").textContent = labelB;
@@ -323,6 +373,31 @@ function renderResult({ original, output, srcR, outR, faith, labelB, level }) {
                  text: output, footer: EXPORT_FOOTER };
   lastReview = { title: deriveTitle(original), source: original, output, lang: $("lang").value,
                  level: level || "plain", kind: "text", faithful: faith.ok };
+  $("embed-wrap").style.display = "none";
+  $("semantic").innerHTML = "";
+  $("approved-note").classList.add("hidden");
+  $("approve").disabled = false;
+  $("results").classList.remove("hidden");
+  $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// Structured simplify: keep headings and lists in both panels and in the export.
+function renderStructured(d, level) {
+  $("view-standard").classList.remove("hidden");
+  $("view-easyread").classList.add("hidden");
+  $("outA").classList.add("structured");
+  $("outB").classList.add("structured");
+  $("outA").innerHTML = blocksToHtml(ingestedBlocks);
+  $("outB").innerHTML = blocksToHtml(d.blocks);
+  $("labelB").textContent = "Simplified";
+  $("metrics").innerHTML = metricsHtml(d.source_readability, d.output_readability);
+  renderFaith(d.faithfulness);
+  const flatOut = blocksToText(d.blocks);
+  lastResult = { source: d.original, output: flatOut, lang: $("lang").value };
+  lastExport = { kind: "structured", lang: $("lang").value, title: "Plain-language document",
+                 blocks: d.blocks, footer: EXPORT_FOOTER };
+  lastReview = { title: deriveTitle(d.original), source: d.original, output: flatOut,
+                 lang: $("lang").value, level: level || "plain", kind: "text", faithful: d.faithfulness.ok };
   $("embed-wrap").style.display = "none";
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
@@ -432,8 +507,13 @@ $("run-simplify").onclick = async () => {
   const level = $("level").value;
   $("run-simplify").disabled = true;
   try {
+    const useStructure = ingestedBlocks && ingestedBlocks.length && $("preserve-structure").checked;
     if (level === "easy_read") {
       renderEasyRead(await post("/easyread", { text, lang: $("lang").value }));
+    } else if (useStructure) {
+      const body = { blocks: ingestedBlocks, level, lang: $("lang").value };
+      if (level === "grade") body.grade = parseInt($("grade").value, 10);
+      renderStructured(await post("/simplify_structured", body), level);
     } else {
       const body = { text, level, lang: $("lang").value };
       if (level === "grade") body.grade = parseInt($("grade").value, 10);
@@ -544,6 +624,8 @@ $("fetch-url").onclick = async () => {
   try {
     const d = await post("/ingest", { url });
     $("src").value = d.text || "";
+    ingestedBlocks = (d.blocks && d.blocks.length) ? d.blocks : null;
+    updateStructureUI();
   } catch (e) { showError(e.message); }
   finally { $("fetch-url").disabled = false; }
 };
@@ -556,6 +638,8 @@ $("ingest-file").onchange = async (e) => {
     const b64 = toBase64(await file.arrayBuffer());
     const d = await post("/ingest", { filename: file.name, content_b64: b64 });
     $("src").value = d.text || "";
+    ingestedBlocks = (d.blocks && d.blocks.length) ? d.blocks : null;
+    updateStructureUI();
   } catch (err) { showError(err.message); }
   finally { e.target.value = ""; }
 };
@@ -671,6 +755,8 @@ $("ex-simplify").onclick = () => {
   $("src").value = "Applicants must submit Form 27B in duplicate no later than 2024-01-31, "
     + "unless they have been granted an exemption under section 4, in which case the fee of "
     + "$150 shall not be payable.";
+  ingestedBlocks = null;
+  updateStructureUI();
   setMode("simplify");
 };
 $("ex-check").onclick = () => {
