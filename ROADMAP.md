@@ -7,10 +7,12 @@ on any item; the ones tagged **good first issue** are self-contained.
 Found a gap not listed here? Open an issue — real-world documents that break
 the faithfulness check are the most valuable bug reports we get.
 
-## Phase 1 — Make the core honest on real inputs
+## Phase 1 — Make the core honest on real inputs — mostly done
 
-The faithfulness checker has known false positives that will fire constantly in
-real use. These are correctness work, not features.
+The faithfulness checker had known false positives that fire constantly in real
+use. These were correctness work, not features. Number words, negation
+re-expression, long-document chunking, and the eval harness are **done**; only
+identifier suffixes remain (lower priority — see below).
 
 - [x] **Number words.** "five hundred" ↔ "500" now compare equal — per-language
   number lexicons in the packs + a shared parser, emitted only for amounts
@@ -29,9 +31,10 @@ real use. These are correctness work, not features.
   rejoins — so a long PDF isn't truncated mid-document by `max_tokens`. Short
   text is still one call. Faithfulness/readability run on the full source vs
   full output.
-- [ ] **Evaluation harness.** A golden set of (source → known-good rewrite)
-  pairs per language; CI measures checker precision/recall and catches prompt
-  or model regressions. Start tiny (20 pairs/language), grow from issues.
+- [x] **Evaluation harness.** `tests/test_eval.py` pins the checker against a
+  golden set — faithful pairs must come back clean (precision), unfaithful ones
+  must be caught (recall). No model needed; it guards the deterministic layer in
+  CI. Started at 15 cases across en/ru/es/de — grow it from real documents.
 
 ## Phase 2 — Real documents in, real documents out
 
