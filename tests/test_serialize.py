@@ -13,7 +13,8 @@ def test_result_dict_shape():
     }
     assert set(d["faithfulness"]) == {
         "ok", "dropped_quantities", "invented_quantities",
-        "dropped_dates", "invented_dates", "warnings",
+        "dropped_dates", "invented_dates",
+        "dropped_identifiers", "invented_identifiers", "warnings",
     }
     assert d["faithfulness"]["ok"] is True
 

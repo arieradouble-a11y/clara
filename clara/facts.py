@@ -111,6 +111,32 @@ def extract_quantities(text: str) -> list[str]:
 
 _LETTERS_RE = re.compile(r"[^\W\d_]+", re.UNICODE)  # runs of letters, any language
 
+# Alphanumeric identifiers — "Form 27A", "Section 12B", "Model X1". The number
+# part alone ("27") already survives as a quantity, so a faithful rewrite passes;
+# the danger is a *changed* suffix ("27A" -> "27B") that the number check can't
+# see. We capture the whole token so that difference is caught.
+#
+# Precision matters more than recall for a hard signal, so we require an ASCII
+# uppercase letter next to a digit. That's how official documents actually write
+# identifiers, and it cleanly excludes the tokens a naive rule wrongly grabs:
+# ordinals ("2nd"), formats ("mp3"), and glued units ("5kg", "100km", "24h") —
+# all lowercase. The tradeoff: a lowercase id ("form 27a") is not captured.
+_ID_RE = re.compile(r"\b(?=[A-Za-z0-9]*[A-Za-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]+\b")
+_ORDINAL_RE = re.compile(r"^\d+(?:st|nd|rd|th)$", re.IGNORECASE)
+_UPPER_RE = re.compile(r"[A-Z]")
+
+
+def extract_identifiers(text: str) -> list[str]:
+    """Alphanumeric identifiers as canonical lowercase tokens ('27a'). See _ID_RE
+    for why we require an uppercase letter (precision over recall)."""
+    out: list[str] = []
+    for m in _ID_RE.finditer(text or ""):
+        tok = m.group(0)
+        if _ORDINAL_RE.match(tok) or not _UPPER_RE.search(tok):
+            continue
+        out.append(tok.lower())
+    return out
+
 
 def _words_to_number(run: list, units: dict, scales: dict, join: set) -> int:
     result, current = 0, 0
@@ -164,6 +190,7 @@ def inventory(text: str, lang: str = "en") -> dict:
     quantities = extract_quantities(masked) + _extract_number_words(masked, pack)
     return {
         "quantities": Counter(quantities),
+        "identifiers": Counter(extract_identifiers(masked)),
         "dates": Counter(dates),
         "negation": len(pack.negation_re.findall(text or "")),
         "implicit_negation": len(pack.negation_implicit_re.findall(text or "")),

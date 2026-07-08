@@ -26,6 +26,8 @@ def faithfulness_dict(fr: FaithfulnessReport) -> dict:
         "invented_quantities": fr.invented_quantities,
         "dropped_dates": fr.dropped_dates,
         "invented_dates": fr.invented_dates,
+        "dropped_identifiers": fr.dropped_identifiers,
+        "invented_identifiers": fr.invented_identifiers,
         "warnings": fr.warnings,
     }
 

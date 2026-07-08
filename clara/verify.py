@@ -20,6 +20,8 @@ class FaithfulnessReport:
     invented_quantities: list[str] = field(default_factory=list)
     dropped_dates: list[str] = field(default_factory=list)
     invented_dates: list[str] = field(default_factory=list)
+    dropped_identifiers: list[str] = field(default_factory=list)
+    invented_identifiers: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -31,6 +33,8 @@ class FaithfulnessReport:
             or self.invented_quantities
             or self.dropped_dates
             or self.invented_dates
+            or self.dropped_identifiers
+            or self.invented_identifiers
         )
 
 
@@ -44,6 +48,7 @@ def verify(source: str, output: str, lang: str = "en") -> FaithfulnessReport:
     s, o = inventory(source, lang), inventory(output, lang)
     dq, iq = _diff(s["quantities"], o["quantities"])
     dd, idt = _diff(s["dates"], o["dates"])
+    di, ii = _diff(s["identifiers"], o["identifiers"])
 
     warnings: list[str] = []
     # A dropped "not" is only worrying if the output didn't re-express it with an
@@ -64,4 +69,4 @@ def verify(source: str, output: str, lang: str = "en") -> FaithfulnessReport:
             f"word(s) (if/unless/except), simplified has {o['condition']}."
         )
 
-    return FaithfulnessReport(dq, iq, dd, idt, warnings)
+    return FaithfulnessReport(dq, iq, dd, idt, di, ii, warnings)

@@ -21,6 +21,8 @@ FAITHFUL = [
     ("en", "number words reverse", "The fee is 500 dollars.", "The fee is five hundred dollars."),
     ("en", "negation re-expressed", "It is not permitted to enter.", "Entry is forbidden."),
     ("en", "percent kept", "You get a 50% discount.", "You get a 50 percent discount."),
+    ("en", "identifier kept", "Submit Form 27A by 2024-01-31.",
+     "Send Form 27A by 31 January 2024."),
     ("ru", "date reformat", "Оплатите 500 рублей до 2024-01-31.",
      "Заплатите 500 рублей до 31 января 2024."),
     ("ru", "number words", "Штраф пятьсот рублей.", "Штраф 500 рублей."),
@@ -35,6 +37,7 @@ UNFAITHFUL = [
     ("en", "changed amount", "The fine is 500 dollars.", "The fine is 600 dollars."),
     ("en", "dropped date", "Apply before 2024-01-31.", "Apply soon."),
     ("en", "inverted negation", "You must not enter.", "You must enter."),
+    ("en", "changed identifier", "Submit Form 27A.", "Submit Form 27B."),
     ("ru", "dropped amount", "Штраф 500 рублей.", "Штраф есть."),
     ("es", "dropped date", "Pague antes del 2024-01-31.", "Pague pronto."),
 ]
@@ -51,7 +54,7 @@ def test_faithful_rewrites_are_clean(lang, note, source, rewrite):
     assert _clean(r), (
         f"false positive [{lang}: {note}] — dropped={r.dropped_quantities} "
         f"invented={r.invented_quantities} dates={r.dropped_dates}/{r.invented_dates} "
-        f"warnings={r.warnings}"
+        f"ids={r.dropped_identifiers}/{r.invented_identifiers} warnings={r.warnings}"
     )
 
 

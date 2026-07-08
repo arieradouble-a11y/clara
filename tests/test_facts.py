@@ -1,4 +1,4 @@
-from clara.facts import extract_dates, extract_quantities, inventory
+from clara.facts import extract_dates, extract_identifiers, extract_quantities, inventory
 
 
 def test_numbers_and_dates():
@@ -42,6 +42,25 @@ def test_bare_small_number_word_is_not_a_quantity():
 
 def test_russian_number_word():
     assert "500" in inventory("Штраф пятьсот рублей.", lang="ru")["quantities"]
+
+
+def test_identifiers_captured():
+    assert extract_identifiers("Submit Form 27A and Section 12B.") == ["27a", "12b"]
+    assert extract_identifiers("Use Model X1 on A4 paper.") == ["x1", "a4"]
+
+
+def test_identifiers_exclude_ordinals_units_and_formats():
+    # The tokens a naive rule wrongly grabs — all excluded (no uppercase / ordinal).
+    for text in ["the 2nd form", "save as mp3", "weighs 5kg", "100km away", "runs 24h"]:
+        assert extract_identifiers(text) == [], text
+
+
+def test_identifier_number_part_still_counts_as_quantity():
+    # "27A" keeps its "27" as a quantity (so a faithful copy stays clean) AND
+    # surfaces the whole id (so a changed suffix is catchable).
+    inv = inventory("Form 27A")
+    assert inv["quantities"]["27"] == 1
+    assert inv["identifiers"]["27a"] == 1
 
 
 def test_negation_and_obligation_counted():

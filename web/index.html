@@ -377,6 +377,8 @@ function renderFaith(f) {
     inner += block("Invented numbers", f.invented_quantities);
     inner += block("Dropped dates", f.dropped_dates);
     inner += block("Invented dates", f.invented_dates);
+    inner += block("Changed IDs (dropped)", f.dropped_identifiers || []);
+    inner += block("Changed IDs (added)", f.invented_identifiers || []);
     if (f.warnings.length) {
       inner += `<ul>` + f.warnings.map((w) => `<li>${w}</li>`).join("") + `</ul>`;
     }

@@ -98,6 +98,10 @@ def cmd_simplify(args) -> int:
             print("  Dropped dates:", ", ".join(fr.dropped_dates))
         if fr.invented_dates:
             print("  Invented dates:", ", ".join(fr.invented_dates))
+        if fr.dropped_identifiers:
+            print("  Dropped identifiers:", ", ".join(fr.dropped_identifiers))
+        if fr.invented_identifiers:
+            print("  Invented identifiers:", ", ".join(fr.invented_identifiers))
         for w in fr.warnings:
             print("  ! ", w)
 

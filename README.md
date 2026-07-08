@@ -29,10 +29,11 @@ Two design commitments carry the project:
 Simplifying a law or a medical instruction is dangerous precisely where it
 matters: the model can drop a deadline, an amount, or a condition, or **invert a
 negation** ("you must not" → "you must"). Clara extracts the hard facts from the
-source — numbers, money, percentages, dates — **without an LLM**, then verifies
-each one survived in the output. A mismatch is a reproducible signal, not an
-opinion. Negations, obligations (`must`/`shall`), and conditions (`if`/`unless`)
-are inventoried too and raised as review warnings.
+source — numbers, money, percentages, dates, and alphanumeric identifiers
+("Form 27A" vs "27B") — **without an LLM**, then verifies each one survived in the
+output. A mismatch is a reproducible signal, not an opinion. Negations,
+obligations (`must`/`shall`), and conditions (`if`/`unless`) are inventoried too
+and raised as review warnings.
 
 On top of that deterministic layer, an **optional LLM semantic check**
 (`clara/semantic.py`; `--semantic` on the CLI, or the "Run AI semantic check"

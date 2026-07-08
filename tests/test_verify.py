@@ -36,6 +36,17 @@ def test_number_words_match_digits_both_directions():
     assert verify("The fine is 500 dollars.", "The fine is five hundred dollars.").ok
 
 
+def test_changed_identifier_is_caught():
+    r = verify("Submit Form 27A.", "Submit Form 27B.")
+    assert not r.ok
+    assert r.dropped_identifiers == ["27a"] and r.invented_identifiers == ["27b"]
+
+
+def test_same_identifier_is_clean():
+    r = verify("Submit Form 27A by 2024-01-31.", "Send Form 27A by 31 January 2024.")
+    assert r.ok and not r.dropped_identifiers and not r.invented_identifiers
+
+
 def test_reexpressed_negation_does_not_warn():
     # "not permitted" -> "forbidden" keeps the meaning; don't cry lost negation.
     r = verify("It is not permitted to smoke here.", "Smoking is forbidden here.")

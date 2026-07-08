@@ -7,12 +7,12 @@ on any item; the ones tagged **good first issue** are self-contained.
 Found a gap not listed here? Open an issue — real-world documents that break
 the faithfulness check are the most valuable bug reports we get.
 
-## Phase 1 — Make the core honest on real inputs — mostly done
+## Phase 1 — Make the core honest on real inputs — done
 
 The faithfulness checker had known false positives that fire constantly in real
 use. These were correctness work, not features. Number words, negation
-re-expression, long-document chunking, and the eval harness are **done**; only
-identifier suffixes remain (lower priority — see below).
+re-expression, long-document chunking, the eval harness, and identifier suffixes
+are all **done**.
 
 - [x] **Number words.** "five hundred" ↔ "500" now compare equal — per-language
   number lexicons in the packs + a shared parser, emitted only for amounts
@@ -22,10 +22,11 @@ identifier suffixes remain (lower priority — see below).
 - [x] **Negation pairs.** "not permitted" → "forbidden" no longer warns — a
   per-language `negation_implicit` list (forbidden/prohibited/запрещено…)
   suppresses the "lost negation" warning when the output re-expresses it.
-- [ ] **Identifier suffixes** (lower priority). "27B" reduces to "27", so
-  "Form 27A" vs "Form 27B" compare equal (a *missed difference*, not a false
-  positive — IDs otherwise match on both sides). Capture alphanumeric IDs as
-  atomic tokens, but carefully — naive matching also grabs "2nd", "mp3".
+- [x] **Identifier suffixes.** Alphanumeric IDs ("Form 27A" vs "Form 27B") are
+  captured as atomic tokens (`extract_identifiers`) and compared as a hard fact,
+  so a changed suffix no longer passes silently. Precision-first: an uppercase
+  letter next to a digit is required, which cleanly excludes "2nd", "mp3", "5kg",
+  "100km" (the tradeoff is that a lowercase id like "form 27a" isn't caught).
 - [x] **Long documents.** `simplify` now splits text on paragraph (then
   sentence) boundaries into chunks under `_CHUNK_CHARS`, simplifies each, and
   rejoins — so a long PDF isn't truncated mid-document by `max_tokens`. Short
