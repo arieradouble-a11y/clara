@@ -48,6 +48,20 @@ class SpanishPack(LanguagePack):
     condition = ["si", "salvo", "excepto", "a menos que", "siempre que", "en caso de"]
     stopwords = _STOP
 
+    number_units = {
+        "cero": 0, "uno": 1, "una": 1, "un": 1, "dos": 2, "tres": 3, "cuatro": 4,
+        "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+        "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15,
+        "dieciseis": 16, "dieciséis": 16, "diecisiete": 17, "dieciocho": 18,
+        "diecinueve": 19, "veinte": 20, "treinta": 30, "cuarenta": 40, "cincuenta": 50,
+        "sesenta": 60, "setenta": 70, "ochenta": 80, "noventa": 90, "cien": 100,
+        "ciento": 100, "doscientos": 200, "trescientos": 300, "cuatrocientos": 400,
+        "quinientos": 500, "seiscientos": 600, "setecientos": 700, "ochocientos": 800,
+        "novecientos": 900,
+    }
+    number_scales = {"mil": 1000, "millon": 1_000_000, "millón": 1_000_000, "millones": 1_000_000}
+    number_join = {"y"}
+
     pictogram_lang = "es"
     simplify_note = "Escribe en español claro y sencillo. Responde solo en español."
     use_simplemma = True

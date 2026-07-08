@@ -109,12 +109,61 @@ def extract_quantities(text: str) -> list[str]:
     return out
 
 
+_LETTERS_RE = re.compile(r"[^\W\d_]+", re.UNICODE)  # runs of letters, any language
+
+
+def _words_to_number(run: list, units: dict, scales: dict, join: set) -> int:
+    result, current = 0, 0
+    for tok in run:
+        if tok in join:
+            continue
+        if tok in units:
+            current += units[tok]
+        elif tok in scales:
+            s = scales[tok]
+            if s == 100:
+                current = (current or 1) * 100          # "five hundred" -> 500
+            else:
+                current = (current or 1) * s
+                result += current
+                current = 0
+    return result + current
+
+
+def _extract_number_words(text: str, pack) -> list[str]:
+    """Spelled-out numbers as canonical digit strings, so "five hundred" matches
+    "500". Only emits values >= 100 or runs of >= 2 number words — a bare "one"
+    in prose is left alone to avoid noise."""
+    units = pack.number_units
+    if not units:
+        return []
+    scales, join = pack.number_scales, pack.number_join
+    tokens = _LETTERS_RE.findall((text or "").lower())
+    out: list[str] = []
+    i, n = 0, len(tokens)
+    while i < n:
+        run, count = [], 0
+        while i < n and (tokens[i] in units or tokens[i] in scales or (run and tokens[i] in join)):
+            if tokens[i] not in join:
+                count += 1
+            run.append(tokens[i])
+            i += 1
+        if count:
+            value = _words_to_number(run, units, scales, join)
+            if value >= 100 or count >= 2:
+                out.append(str(value))
+        else:
+            i += 1
+    return out
+
+
 def inventory(text: str, lang: str = "en") -> dict:
     pack = get_pack(lang)
     dates, spans = extract_dates(text, lang)
     masked = _mask(text or "", spans)
+    quantities = extract_quantities(masked) + _extract_number_words(masked, pack)
     return {
-        "quantities": Counter(extract_quantities(masked)),
+        "quantities": Counter(quantities),
         "dates": Counter(dates),
         "negation": len(pack.negation_re.findall(text or "")),
         "obligation": len(pack.obligation_re.findall(text or "")),

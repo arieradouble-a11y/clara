@@ -12,11 +12,11 @@ the faithfulness check are the most valuable bug reports we get.
 The faithfulness checker has known false positives that will fire constantly in
 real use. These are correctness work, not features.
 
-- [ ] **Number words.** Plain language spells numbers out; the checker only sees
-  digits. "five hundred" → "500" is flagged as *invented*; "500" → "five
-  hundred" as *dropped*. Fix: per-language number-word lexicons in the language
-  packs (data-only, fits the pack architecture), normalized before inventory.
-  en/ru/es/de/fr.
+- [x] **Number words.** "five hundred" ↔ "500" now compare equal — per-language
+  number lexicons in the packs + a shared parser, emitted only for amounts
+  (value ≥ 100 or ≥ 2 words) to avoid prose noise. en/ru/es/de. *fr deferred:
+  the soixante-dix / quatre-vingts system would misparse (24 for 80) — better to
+  not extract than to extract a wrong value; needs a dedicated French parser.*
 - [ ] **Negation pairs.** Removing a double negative ("not permitted" →
   "forbidden") is a classic simplification and currently warns. Fix: a small
   per-language antonym/negated-form list so the warning only fires on genuine

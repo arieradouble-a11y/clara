@@ -31,6 +31,11 @@ def test_reformatted_date_still_matches():
     assert r.ok
 
 
+def test_number_words_match_digits_both_directions():
+    assert verify("Pay five hundred dollars by 2024-01-31.", "Pay 500 dollars by 2024-01-31.").ok
+    assert verify("The fine is 500 dollars.", "The fine is five hundred dollars.").ok
+
+
 def test_lost_negation_warns_but_hard_facts_ok():
     r = verify("You must not enter.", "You must enter.")
     assert r.ok  # no numbers/dates changed

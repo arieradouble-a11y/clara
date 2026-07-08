@@ -31,6 +31,14 @@ class LanguagePack:
     obligation: list = []
     condition: list = []
 
+    # Spelled-out numbers, so "five hundred" and "500" compare equal. Empty =
+    # no number-word extraction for this language (safe default). units holds
+    # atomic values (0-19, tens, and in some languages the hundreds); scales
+    # multiply (hundred/thousand/…); join words ("and") may sit inside a run.
+    number_units: dict = {}
+    number_scales: dict = {}
+    number_join: set = set()
+
     # Easy Read
     stopwords: set = set()
 
