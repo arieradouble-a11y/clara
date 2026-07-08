@@ -115,20 +115,28 @@ def test_latin_lemmatize_soft_fails(monkeypatch):
 
 
 def test_easyread_looks_up_lemma(monkeypatch):
-    import clara.easyread as er
     from clara.easyread import easy_read
     from clara.llm.base import MockProvider
+    from clara.pictograms import Symbol, SymbolProvider
 
     pack = get_pack("ru")
     monkeypatch.setattr(pack, "lemmatize", lambda w: "вода" if w == "воду" else w)
     seen = []
 
-    def fake_best_id(kw, lang="ru"):
-        seen.append(kw)
-        return 111 if kw == "вода" else None
+    class SeenSymbols(SymbolProvider):
+        name = "stub"
 
-    monkeypatch.setattr(er, "best_id", fake_best_id)
-    res = easy_read("Закройте воду.", provider=MockProvider(), lang="ru")
-    assert "вода" in seen  # ARASAAC was queried with the lemma, not "воду"
+        def best(self, keyword, lang="en"):
+            seen.append(keyword)
+            return Symbol(111, keyword, "http://x/111.png", self.name) if keyword == "вода" else None
+
+        def search(self, keyword, lang="en", limit=12):
+            return []
+
+        def image_url(self, symbol_id, size=300):
+            return f"http://x/{symbol_id}.png"
+
+    res = easy_read("Закройте воду.", provider=MockProvider(), lang="ru", symbols=SeenSymbols())
+    assert "вода" in seen  # the symbol set was queried with the lemma, not "воду"
     assert res.lines[0].pictogram_id == 111
     assert res.lines[0].keyword == "вода"

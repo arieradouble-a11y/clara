@@ -26,6 +26,7 @@ from clara.easyread import easy_read
 from clara.export import document_html, document_pdf
 from clara.ingest import from_url, ingest_bytes
 from clara.llm import get_check_provider, get_provider
+from clara.pictograms import get_symbol_provider
 from clara.review import ReviewStore
 from clara.pipeline import simplify_structured, simplify_text
 from clara.readability import analyze
@@ -85,6 +86,14 @@ class EasyReadRequest(BaseModel):
     text: str
     lang: str = "en"
     provider: str | None = None
+    symbols: str | None = None         # symbol set: "arasaac" | "mulberry"
+
+
+class SymbolSearchRequest(BaseModel):
+    keyword: str
+    lang: str = "en"
+    symbols: str | None = None
+    limit: int = 12
 
 
 class SemanticRequest(BaseModel):
@@ -147,7 +156,18 @@ def verify_endpoint(req: VerifyRequest) -> dict:
 @app.post("/easyread")
 def easyread_endpoint(req: EasyReadRequest) -> dict:
     provider = get_provider(req.provider) if req.provider else None
-    return easyread_dict(easy_read(req.text, provider=provider, lang=req.lang))
+    return easyread_dict(easy_read(req.text, provider=provider, lang=req.lang, symbols=req.symbols))
+
+
+@app.post("/pictograms/search")
+def pictogram_search_endpoint(req: SymbolSearchRequest) -> dict:
+    """Alternative symbols for a keyword, so a reviewer can pick a better picture."""
+    provider = get_symbol_provider(req.symbols)
+    hits = provider.search(req.keyword, lang=req.lang, limit=req.limit)
+    return {
+        "provider": provider.name,
+        "results": [{"id": s.id, "keyword": s.label, "image_url": s.image_url} for s in hits],
+    }
 
 
 @app.post("/semantic")

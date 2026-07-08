@@ -27,6 +27,7 @@ from clara.easyread import easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
 from clara.llm import get_check_provider, get_provider  # noqa: E402
+from clara.pictograms import get_symbol_provider  # noqa: E402
 from clara.review import ReviewStore  # noqa: E402
 from clara.pipeline import simplify_structured, simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
@@ -128,8 +129,15 @@ class Handler(BaseHTTPRequestHandler):
                 })
             elif self.path == "/easyread":
                 provider = get_provider(data.get("provider"))
-                res = easy_read(data.get("text", ""), provider=provider, lang=data.get("lang", "en"))
+                res = easy_read(data.get("text", ""), provider=provider,
+                                lang=data.get("lang", "en"), symbols=data.get("symbols"))
                 self._send_json(easyread_dict(res))
+            elif self.path == "/pictograms/search":
+                sp = get_symbol_provider(data.get("symbols"))
+                hits = sp.search(data.get("keyword", ""), lang=data.get("lang", "en"),
+                                 limit=int(data.get("limit", 12)))
+                self._send_json({"provider": sp.name,
+                                 "results": [{"id": s.id, "keyword": s.label, "image_url": s.image_url} for s in hits]})
             elif self.path == "/semantic":
                 provider = get_check_provider(data.get("provider"))  # independent grader by default
                 rep = semantic_check(data.get("source", ""), data.get("output", ""),

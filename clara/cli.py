@@ -120,7 +120,7 @@ def cmd_simplify(args) -> int:
 def cmd_easyread(args) -> int:
     provider = get_provider(args.provider)
     res = easy_read(_read_input(args), provider=provider, lang=args.lang,
-                    with_pictograms=not args.no_pictograms)
+                    with_pictograms=not args.no_pictograms, symbols=args.symbols)
 
     if args.html:
         lines = [easyread_line_dict(ln) for ln in res.lines]
@@ -256,6 +256,8 @@ def main(argv=None) -> int:
     e.add_argument("--lang", default="en", help="Language pack (en, ru) — also the ARASAAC locale")
     e.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     e.add_argument("--no-pictograms", action="store_true", help="Skip pictogram lookup (offline)")
+    e.add_argument("--symbols", default=None, choices=["arasaac", "mulberry"],
+                   help="Symbol set: arasaac (CC BY-NC-SA, default) or mulberry (CC BY-SA, commercial-ok)")
     e.add_argument("--html", action="store_true", help="Output an accessible HTML document")
     e.add_argument("--embed-images", action="store_true",
                    help="Inline pictograms as data URIs so the HTML works offline (with --html)")

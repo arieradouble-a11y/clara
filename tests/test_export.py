@@ -35,7 +35,8 @@ def test_footer_included_when_given():
 
 def test_easyread_embeds_images(monkeypatch):
     import clara.pictograms as pics
-    monkeypatch.setattr(pics, "image_data_uri", lambda pid, size=300: f"data:image/png;base64,ABC{pid}")
+    monkeypatch.setattr(pics.ArasaacProvider, "data_uri",
+                        lambda self, pid, size=300, **k: f"data:image/png;base64,ABC{pid}")
     lines = [{"text": "Water.", "keyword": "water", "image_url": "https://x/1.png", "pictogram_id": 11}]
     doc = document_html(kind="easyread", lines=lines, embed_images=True)
     assert "data:image/png;base64,ABC11" in doc
@@ -44,7 +45,7 @@ def test_easyread_embeds_images(monkeypatch):
 
 def test_easyread_embed_falls_back_to_url(monkeypatch):
     import clara.pictograms as pics
-    monkeypatch.setattr(pics, "image_data_uri", lambda pid, size=300: None)
+    monkeypatch.setattr(pics.ArasaacProvider, "data_uri", lambda self, pid, size=300, **k: None)
     lines = [{"text": "Water.", "keyword": "water", "image_url": "https://x/1.png", "pictogram_id": 11}]
     doc = document_html(kind="easyread", lines=lines, embed_images=True)
     assert "https://x/1.png" in doc  # unreachable image -> URL fallback

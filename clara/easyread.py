@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from .lang import get_pack
 from .llm import get_provider
 from .llm.base import LLMProvider
-from .pictograms import best_id, image_url
+from .pictograms import SymbolProvider, get_symbol_provider
 from .readability import Readability, analyze
 from .simplify import simplify
 from .verify import FaithfulnessReport, verify
@@ -44,8 +44,9 @@ def _split_lines(text: str) -> list[str]:
 class EasyReadLine:
     text: str
     keyword: str | None = None
-    pictogram_id: int | None = None
+    pictogram_id: int | str | None = None
     image_url: str | None = None
+    symbol_source: str | None = None   # which symbol set the picture came from
 
 
 @dataclass
@@ -55,6 +56,7 @@ class EasyReadResult:
     source_readability: Readability = None
     output_readability: Readability = None
     faithfulness: FaithfulnessReport = None
+    symbol_source: str | None = None   # the symbol set used (arasaac / mulberry)
 
 
 def easy_read(
@@ -62,9 +64,11 @@ def easy_read(
     provider: LLMProvider | None = None,
     lang: str = "en",
     with_pictograms: bool = True,
+    symbols: SymbolProvider | str | None = None,
 ) -> EasyReadResult:
     provider = provider or get_provider()
     pack = get_pack(lang)
+    sym = symbols if isinstance(symbols, SymbolProvider) else get_symbol_provider(symbols)
     simplified = simplify(text, level="easy_read", provider=provider, lang=lang)
 
     lines: list[EasyReadLine] = []
@@ -72,12 +76,13 @@ def easy_read(
         line = EasyReadLine(text=line_text)
         if with_pictograms:
             for kw in _keywords(line_text, pack):
-                lemma = pack.lemmatize(kw)  # 'воду' -> 'вода' so ARASAAC matches
-                pid = best_id(lemma, lang=pack.pictogram_lang)
-                if pid:
+                lemma = pack.lemmatize(kw)  # 'воду' -> 'вода' so the symbol set matches
+                hit = sym.best(lemma, lang=pack.pictogram_lang)
+                if hit:
                     line.keyword = lemma
-                    line.pictogram_id = pid
-                    line.image_url = image_url(pid)
+                    line.pictogram_id = hit.id
+                    line.image_url = hit.image_url
+                    line.symbol_source = hit.provider
                     break
         lines.append(line)
 
@@ -88,4 +93,5 @@ def easy_read(
         source_readability=analyze(text, lang),
         output_readability=analyze(joined, lang),
         faithfulness=verify(text, joined, lang),
+        symbol_source=sym.name,
     )

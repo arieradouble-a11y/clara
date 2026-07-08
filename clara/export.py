@@ -86,9 +86,11 @@ def _easyread_html(lines: list, embed_images: bool = False) -> str:
     for ln in lines or []:
         url = ln.get("image_url")
         if embed_images and ln.get("pictogram_id"):
-            from .pictograms import image_data_uri  # lazy: keeps export import-light
+            from .pictograms import get_symbol_provider  # lazy: keeps export import-light
 
-            uri = image_data_uri(ln["pictogram_id"])
+            # Embed via the same symbol set the picture came from (PNG vs SVG).
+            provider = get_symbol_provider(ln.get("symbol_source"))
+            uri = provider.data_uri(ln["pictogram_id"])
             if uri:  # fall back to the URL if the image can't be fetched
                 url = uri
         img = ""

@@ -58,6 +58,7 @@ def easyread_line_dict(line: EasyReadLine) -> dict:
         "keyword": line.keyword,
         "pictogram_id": line.pictogram_id,
         "image_url": line.image_url,
+        "symbol_source": line.symbol_source,
     }
 
 
@@ -68,6 +69,7 @@ def easyread_dict(res: EasyReadResult) -> dict:
         "source_readability": readability_dict(res.source_readability),
         "output_readability": readability_dict(res.output_readability),
         "faithfulness": faithfulness_dict(res.faithfulness),
+        "symbol_source": res.symbol_source,
     }
 
 

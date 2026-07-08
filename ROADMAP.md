@@ -56,9 +56,10 @@ identifier suffixes remain (lower priority — see below).
 
 - [ ] **Reviewer picks the pictogram.** The keyword is already returned; add UI
   to click a picture and choose among ARASAAC alternatives (search endpoint).
-- [ ] **Pluggable symbol sets.** ARASAAC is CC BY-NC-SA (non-commercial). Add a
-  provider interface + Mulberry Symbols (CC BY-SA) as a commercial-compatible
-  alternative. The source is already isolated in `pictograms.py`.
+- [x] **Pluggable symbol sets.** `SymbolProvider` interface in `pictograms.py`
+  with ARASAAC (CC BY-NC-SA, default) and **Mulberry Symbols** (CC BY-SA,
+  commercial-compatible) behind `CLARA_SYMBOLS` / `--symbols`. Mulberry matches a
+  bundled label index (no search API); art streams from its CDN.
 - [ ] **Smarter keyword choice** — prefer nouns/verbs over "first content word"
   (POS tagging where a light tagger exists). **good first issue** per language.
 

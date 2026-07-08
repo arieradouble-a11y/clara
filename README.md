@@ -154,10 +154,18 @@ clara easyread --text "Applicants must submit Form 27B by 2024-01-31."
 # In the web UI, pick the "Easy Read" level to see the picture layout.
 ```
 
-Pictograms come from **ARASAAC** (~13k symbols, multilingual). Matching is
-best-effort and the chosen keyword is returned so a human reviewer can swap the
-image. Lookups are cached on disk and fail soft — if ARASAAC is unreachable the
-text still works, just without pictures.
+Pictograms come from a pluggable **symbol set**. Two ship today, chosen with
+`CLARA_SYMBOLS` or `easyread --symbols`:
+
+- **ARASAAC** (default) — ~13k multilingual symbols with a real search API, so a
+  reviewer can browse alternatives. **CC BY-NC-SA** (non-commercial).
+- **Mulberry** — ~3.4k English SVGs, **CC BY-SA** (commercial-compatible). No
+  search API, so matching uses a bundled label index; the art is fetched from the
+  Mulberry CDN and cached.
+
+Matching is best-effort and the chosen keyword is returned so a human reviewer can
+swap the image. Lookups are cached on disk and fail soft — if the set is
+unreachable the text still works, just without pictures.
 
 Inflected languages are lemmatized before lookup so more words match: Russian via
 pymorphy3 (`pip install "clara[ru]"`), Spanish/German/French via simplemma
@@ -167,8 +175,10 @@ falls back to the raw word.
 > **Attribution & licensing.** ARASAAC pictograms are the property of the
 > Government of Aragón, created by Sergio Palao, licensed **CC BY-NC-SA**. The
 > **non-commercial** clause carries downstream: if you build a commercial product,
-> you must swap in a symbol set whose license permits it. The pictogram source is
-> isolated in `clara/pictograms.py` for exactly this reason.
+> switch to `CLARA_SYMBOLS=mulberry` — Mulberry Symbols (by Steve Lee / Straight
+> Street) are **CC BY-SA**, which permits commercial use with attribution.
+> Symbol sets are providers in `clara/pictograms.py`; add another by implementing
+> `SymbolProvider`.
 
 ---
 
