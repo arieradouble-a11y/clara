@@ -21,7 +21,14 @@ from pydantic import BaseModel
 
 import base64
 
-from clara.auth import AuthStore, auth_enabled, bearer_token
+from clara.auth import (
+    AuthStore,
+    RateLimitedError,
+    auth_enabled,
+    bearer_token,
+    can_approve,
+    is_admin,
+)
 from clara.easyread import easy_read
 from clara.export import document_html, document_pdf
 from clara.ingest import from_url, ingest_bytes
@@ -240,8 +247,20 @@ def auth_register(req: Credentials):
 def auth_login(req: Credentials):
     if not auth_enabled():
         return JSONResponse({"error": "Authentication is not enabled."}, status_code=400)
-    result = _auth.login(req.username, req.password)
+    try:
+        result = _auth.login(req.username, req.password)
+    except RateLimitedError as e:
+        return JSONResponse({"error": str(e)}, status_code=429,
+                            headers={"Retry-After": str(e.retry_after)})
     return result or JSONResponse({"error": "Invalid username or password."}, status_code=401)
+
+
+@app.post("/auth/users")
+def auth_users(user: dict | None = Depends(current_user)):
+    """List users so an admin can assign a validator. Admin-only when auth is on."""
+    if auth_enabled() and not is_admin(user):
+        return JSONResponse({"error": "Admin only."}, status_code=403)
+    return {"users": _auth.list_users()}
 
 
 @app.post("/auth/logout")
@@ -282,12 +301,33 @@ def reviews_comment(payload: dict, user: dict | None = Depends(current_user)):
     return r or JSONResponse({"error": "not found"}, status_code=404)
 
 
+_APPROVAL_STATUSES = {"approved", "rejected"}
+
+
 @app.post("/reviews/status")
 def reviews_status(payload: dict, user: dict | None = Depends(current_user)):
+    status = payload.get("status")
+    current = _reviews.get_review(payload.get("id"))
+    if not current:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    # Approve/reject is a sign-off: only an admin or the assigned validator.
+    if status in _APPROVAL_STATUSES and not can_approve(user, current.get("assignee_id")):
+        return JSONResponse({"error": "Only an admin or the assigned validator can approve or reject."},
+                            status_code=403)
     try:
-        r = _reviews.set_status(payload.get("id"), payload.get("status"))
+        r = _reviews.set_status(payload.get("id"), status)
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
+    return r or JSONResponse({"error": "not found"}, status_code=404)
+
+
+@app.post("/reviews/assign")
+def reviews_assign(payload: dict, user: dict | None = Depends(current_user)):
+    """Assign a validator to a review. Admin-only when auth is on."""
+    if auth_enabled() and not is_admin(user):
+        return JSONResponse({"error": "Only an admin can assign reviews."}, status_code=403)
+    r = _reviews.assign_review(payload.get("id"), payload.get("assignee_id"),
+                               payload.get("assignee_name"))
     return r or JSONResponse({"error": "not found"}, status_code=404)
 
 

@@ -12,12 +12,33 @@ import hmac
 import os
 import secrets
 import sqlite3
+import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 _ITERATIONS = 200_000
 ROLES = {"admin", "reviewer"}
+
+
+class RateLimitedError(Exception):
+    """Too many failed logins for a username — back off before retrying."""
+
+    def __init__(self, retry_after: int):
+        super().__init__(f"Too many attempts. Try again in {retry_after}s.")
+        self.retry_after = retry_after
+
+
+def is_admin(user: dict | None) -> bool:
+    return bool(user) and user.get("role") == "admin"
+
+
+def can_approve(user: dict | None, assignee_id: int | None) -> bool:
+    """Who may approve or reject a review: with auth off, anyone (single-user
+    local mode); with auth on, an admin or the review's assigned validator."""
+    if user is None:
+        return True
+    return user.get("role") == "admin" or (assignee_id is not None and user.get("id") == assignee_id)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -74,11 +95,17 @@ def _default_db() -> Path:
 
 
 class AuthStore:
-    def __init__(self, path=None):
+    def __init__(self, path=None, *, max_attempts: int | None = None, lockout_seconds: int | None = None):
         self.path = Path(path) if path else _default_db()
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._max_attempts = max_attempts if max_attempts is not None else int(
+            os.environ.get("CLARA_LOGIN_MAX_ATTEMPTS", "5"))
+        self._lockout = lockout_seconds if lockout_seconds is not None else int(
+            os.environ.get("CLARA_LOGIN_LOCKOUT", "300"))
+        self._fails: dict[str, list[float]] = {}   # username -> recent failure timestamps
         with self._conn() as c:
             c.executescript(_SCHEMA)
+        self.prune_sessions()   # housekeeping on startup
 
     @contextmanager
     def _conn(self):
@@ -127,10 +154,33 @@ class AuthStore:
             return self._public(row)
         return None
 
+    def _recent_failures(self, username: str) -> list[float]:
+        cutoff = time.time() - self._lockout
+        hits = [t for t in self._fails.get(username, []) if t >= cutoff]
+        if hits:
+            self._fails[username] = hits
+        else:
+            self._fails.pop(username, None)
+        return hits
+
+    def _check_rate(self, username: str) -> None:
+        if self._max_attempts <= 0:
+            return
+        hits = self._recent_failures(username)
+        if len(hits) >= self._max_attempts:
+            retry_after = int(self._lockout - (time.time() - min(hits))) + 1
+            raise RateLimitedError(max(retry_after, 1))
+
     def login(self, username: str, password: str, ttl_days: int = 30) -> dict | None:
+        """Authenticate and open a session. Raises RateLimitedError after too
+        many recent failures for this username (credential stuffing defense)."""
+        self._check_rate(username)
         user = self.authenticate(username, password)
         if not user:
+            self._fails.setdefault(username, []).append(time.time())
             return None
+        self._fails.pop(username, None)   # a good login clears the counter
+        self.prune_sessions()
         token = secrets.token_urlsafe(32)
         now = _now()
         with self._conn() as c:
@@ -139,6 +189,12 @@ class AuthStore:
                 (token, user["id"], _iso(now), _iso(now + timedelta(days=ttl_days))),
             )
         return {"token": token, "user": user}
+
+    def prune_sessions(self) -> int:
+        """Delete expired sessions so the table doesn't grow without bound."""
+        with self._conn() as c:
+            cur = c.execute("DELETE FROM sessions WHERE expires_at < ?", (_iso(_now()),))
+        return cur.rowcount
 
     def user_for_token(self, token: str | None) -> dict | None:
         if not token:

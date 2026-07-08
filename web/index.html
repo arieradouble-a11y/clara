@@ -813,6 +813,18 @@ function renderReviewDetail(r) {
   const faith = r.faithful == null ? "" : (r.faithful
     ? ' <span class="badge-status st-approved">facts preserved</span>'
     : ' <span class="badge-status st-changes_requested">facts need review</span>');
+  const me = authState.user;
+  const isAdmin = !authState.enabled || (me && me.role === "admin");
+  // Only an admin or the assigned validator may sign off (the server enforces this too).
+  const canApprove = !authState.enabled || (me && (me.role === "admin" || me.id === r.assignee_id));
+  const gate = canApprove ? "" : ` disabled title="Only an admin or the assigned validator can sign off"`;
+  const assignee = r.assignee_name
+    ? `Assigned to <strong>${escapeHtml(r.assignee_name)}</strong>`
+    : `<span class="hint">Unassigned</span>`;
+  const assignBox = (isAdmin && authState.enabled)
+    ? `<span style="display:flex; gap:6px; align-items:center; margin-left:auto">
+         <select id="rv-assignee" aria-label="Assign validator" style="width:auto"></select>
+         <button class="btn secondary" id="rv-assign">Assign</button></span>` : "";
   $("review-detail").innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px">
       <div><strong>${escapeHtml(r.title)}</strong> <span class="rv-meta">#${r.id} · ${escapeHtml(r.lang)}/${escapeHtml(r.level)}</span></div>
@@ -822,10 +834,13 @@ function renderReviewDetail(r) {
       <div class="card panel"><h3>Original</h3><div class="body">${escapeHtml(r.source)}</div></div>
       <div class="card panel"><h3>Current output${faith}</h3><div class="body">${escapeHtml(r.output)}</div></div>
     </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px">
+      ${assignee}${assignBox}
+    </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px">
-      <button class="btn secondary" data-st="approved">Approve</button>
+      <button class="btn secondary" data-st="approved"${gate}>Approve</button>
       <button class="btn secondary" data-st="changes_requested">Request changes</button>
-      <button class="btn secondary" data-st="rejected">Reject</button>
+      <button class="btn secondary" data-st="rejected"${gate}>Reject</button>
       <span class="hint">${r.versions.length} version(s)</span>
     </div>
     <p class="er-head">Comments</p>
@@ -845,8 +860,34 @@ function renderReviewDetail(r) {
   });
   $("rv-add-comment").onclick = () => addReviewComment(r.id);
   $("rv-save-rev").onclick = () => saveRevision(r.id);
+  if ($("rv-assign")) {
+    populateAssignees(r.assignee_id);
+    $("rv-assign").onclick = () => assignReview(r.id);
+  }
   $("review-detail").classList.remove("hidden");
   $("review-detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function populateAssignees(currentId) {
+  const sel = $("rv-assignee");
+  if (!sel) return;
+  try {
+    const d = await post("/auth/users", {});
+    sel.innerHTML = `<option value="">— Unassigned —</option>` + (d.users || []).map((u) =>
+      `<option value="${u.id}" data-name="${escapeHtml(u.username)}"${u.id === currentId ? " selected" : ""}>`
+      + `${escapeHtml(u.username)} (${escapeHtml(u.role)})</option>`).join("");
+  } catch (e) { sel.innerHTML = `<option value="">(couldn't load users)</option>`; }
+}
+
+async function assignReview(id) {
+  const sel = $("rv-assignee");
+  const opt = sel.selectedOptions[0];
+  const assignee_id = sel.value ? parseInt(sel.value, 10) : null;
+  const assignee_name = opt ? opt.getAttribute("data-name") : null;
+  try {
+    renderReviewDetail(await post("/reviews/assign", { id, assignee_id, assignee_name }));
+    loadReviews();
+  } catch (e) { showError(e.message); }
 }
 
 async function setReviewStatus(id, status) {

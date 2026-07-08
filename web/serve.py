@@ -22,7 +22,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # make 'clara' importable
 
-from clara.auth import AuthStore, auth_enabled, bearer_token  # noqa: E402
+from clara.auth import (  # noqa: E402
+    AuthStore,
+    RateLimitedError,
+    auth_enabled,
+    bearer_token,
+    can_approve,
+    is_admin,
+)
 from clara.easyread import easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
@@ -176,8 +183,20 @@ class Handler(BaseHTTPRequestHandler):
                 if not auth_enabled():
                     self._send_json({"error": "Authentication is not enabled."}, 400)
                 else:
-                    result = _auth.login(data.get("username", ""), data.get("password", ""))
-                    self._send_json(result) if result else self._send_json({"error": "Invalid username or password."}, 401)
+                    try:
+                        result = _auth.login(data.get("username", ""), data.get("password", ""))
+                    except RateLimitedError as e:
+                        self._send_json({"error": str(e)}, 429)
+                    else:
+                        self._send_json(result) if result else self._send_json({"error": "Invalid username or password."}, 401)
+            elif self.path == "/auth/users":
+                user, ok = self._require_user()
+                if not ok:
+                    return
+                if auth_enabled() and not is_admin(user):
+                    self._send_json({"error": "Admin only."}, 403)
+                else:
+                    self._send_json({"users": _auth.list_users()})
             elif self.path == "/auth/logout":
                 _auth.logout(bearer_token(self.headers.get("Authorization")))
                 self._send_json({"ok": True})
@@ -218,11 +237,26 @@ class Handler(BaseHTTPRequestHandler):
                 user, ok = self._require_user()
                 if not ok:
                     return
-                try:
-                    r = _reviews.set_status(data.get("id"), data.get("status"))
-                except ValueError as e:
-                    self._send_json({"error": str(e)}, 400)
+                current = _reviews.get_review(data.get("id"))
+                if not current:
+                    self._send_json({"error": "not found"}, 404)
+                elif data.get("status") in ("approved", "rejected") and not can_approve(user, current.get("assignee_id")):
+                    self._send_json({"error": "Only an admin or the assigned validator can approve or reject."}, 403)
                 else:
+                    try:
+                        r = _reviews.set_status(data.get("id"), data.get("status"))
+                    except ValueError as e:
+                        self._send_json({"error": str(e)}, 400)
+                    else:
+                        self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
+            elif self.path == "/reviews/assign":
+                user, ok = self._require_user()
+                if not ok:
+                    return
+                if auth_enabled() and not is_admin(user):
+                    self._send_json({"error": "Only an admin can assign reviews."}, 403)
+                else:
+                    r = _reviews.assign_review(data.get("id"), data.get("assignee_id"), data.get("assignee_name"))
                     self._send_json(r) if r else self._send_json({"error": "not found"}, 404)
             elif self.path == "/reviews/revision":
                 user, ok = self._require_user()

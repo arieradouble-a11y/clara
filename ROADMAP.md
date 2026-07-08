@@ -80,8 +80,11 @@ are all **done**.
   partner NGO / SLP group, run a small validation protocol, publish the
   method and findings. Until then the README must keep saying "assistive, not
   authoritative" — and it will stay true after, too.
-- [ ] **Review workflow hardening**: enforce roles (approve = admin/assigned
-  validator), per-review assignment, login rate-limiting, session pruning.
+- [x] **Review workflow hardening**: approve/reject now requires an admin or the
+  review's assigned validator (`can_approve`), per-review assignment
+  (`assign_review` + admin-only `/reviews/assign`, `/auth/users`), login
+  rate-limiting (`RateLimitedError` → HTTP 429), and session pruning
+  (`prune_sessions`, on startup and each login). Enforced in both servers.
 
 ## Phase 5 — Distribution
 

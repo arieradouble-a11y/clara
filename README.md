@@ -365,7 +365,9 @@ and validation with target readers.
       scanned-PDF OCR (optional `[ocr]`), with headings/lists preserved through export
 - [x] LLM-based semantic faithfulness check (opt-in, on top of deterministic)
 - [x] Language packs: English + Russian (add one in `clara/lang/`)
-- [x] Review workflow: versions, comments, status sign-off; optional multi-user auth
+- [x] Review workflow: versions, comments, status sign-off; optional multi-user
+      auth with roles (approve = admin/assigned validator), assignment, login
+      rate-limiting, session pruning
 
 ---
 

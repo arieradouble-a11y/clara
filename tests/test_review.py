@@ -70,3 +70,15 @@ def test_created_by_attribution(store):
     assert r["created_by"] == 5
     assert r["created_by_name"] == "alice"
     assert store.list_reviews()[0]["created_by_name"] == "alice"
+
+
+def test_assign_review(store):
+    r = store.create_review(title="A", source="s", output="o")
+    assert r["assignee_id"] is None
+    assigned = store.assign_review(r["id"], 7, "val")
+    assert assigned["assignee_id"] == 7
+    assert assigned["assignee_name"] == "val"
+    assert store.list_reviews()[0]["assignee_id"] == 7       # surfaced in the summary too
+    # clearing the assignment
+    assert store.assign_review(r["id"], None)["assignee_id"] is None
+    assert store.assign_review(999, 1) is None               # unknown review

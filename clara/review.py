@@ -78,8 +78,9 @@ class ReviewStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as c:
             c.executescript(_SCHEMA)
-            # Migrate older DBs that predate attribution columns.
-            for col, decl in (("created_by", "INTEGER"), ("created_by_name", "TEXT")):
+            # Migrate older DBs that predate attribution / assignment columns.
+            for col, decl in (("created_by", "INTEGER"), ("created_by_name", "TEXT"),
+                              ("assignee_id", "INTEGER"), ("assignee_name", "TEXT")):
                 try:
                     c.execute(f"ALTER TABLE reviews ADD COLUMN {col} {decl}")
                 except sqlite3.OperationalError:
@@ -102,6 +103,7 @@ class ReviewStore:
             "title": r["title"], "lang": r["lang"], "level": r["level"],
             "kind": r["kind"], "status": r["status"], "faithful": _ub(r["faithful"]),
             "created_by": r["created_by"], "created_by_name": r["created_by_name"],
+            "assignee_id": r["assignee_id"], "assignee_name": r["assignee_name"],
         }
 
     def _full(self, r) -> dict:
@@ -135,7 +137,7 @@ class ReviewStore:
 
     def list_reviews(self, status=None) -> list[dict]:
         q = ("SELECT id,created_at,updated_at,title,lang,level,kind,status,faithful,"
-             "created_by,created_by_name FROM reviews")
+             "created_by,created_by_name,assignee_id,assignee_name FROM reviews")
         args: tuple = ()
         if status:
             q += " WHERE status=?"
@@ -181,6 +183,18 @@ class ReviewStore:
         with self._conn() as c:
             cur = c.execute("UPDATE reviews SET status=?, updated_at=? WHERE id=?",
                             (status, now, review_id))
+            if cur.rowcount == 0:
+                return None
+        return self.get_review(review_id)
+
+    def assign_review(self, review_id, assignee_id, assignee_name=None) -> dict | None:
+        """Assign (or clear, with assignee_id=None) the validator for a review."""
+        now = _now()
+        with self._conn() as c:
+            cur = c.execute(
+                "UPDATE reviews SET assignee_id=?, assignee_name=?, updated_at=? WHERE id=?",
+                (assignee_id, assignee_name, now, review_id),
+            )
             if cur.rowcount == 0:
                 return None
         return self.get_review(review_id)
