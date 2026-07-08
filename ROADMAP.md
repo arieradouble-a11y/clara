@@ -24,10 +24,11 @@ real use. These are correctness work, not features.
   "Form 27A" vs "Form 27B" compare equal (a *missed difference*, not a false
   positive — IDs otherwise match on both sides). Capture alphanumeric IDs as
   atomic tokens, but carefully — naive matching also grabs "2nd", "mp3".
-- [ ] **Long documents.** `simplify` sends the whole text in one call;
-  `max_tokens` truncates long PDFs mid-document. Fix: chunk by paragraphs/
-  sections, simplify + verify per chunk, merge results. This is the blocker for
-  "ingest a real 20-page notice".
+- [x] **Long documents.** `simplify` now splits text on paragraph (then
+  sentence) boundaries into chunks under `_CHUNK_CHARS`, simplifies each, and
+  rejoins — so a long PDF isn't truncated mid-document by `max_tokens`. Short
+  text is still one call. Faithfulness/readability run on the full source vs
+  full output.
 - [ ] **Evaluation harness.** A golden set of (source → known-good rewrite)
   pairs per language; CI measures checker precision/recall and catches prompt
   or model regressions. Start tiny (20 pairs/language), grow from issues.

@@ -11,9 +11,16 @@ passed as the user prompt (this also lets MockProvider echo it verbatim).
 """
 from __future__ import annotations
 
+import re
+
 from .lang import get_pack
 from .llm import get_provider
 from .llm.base import LLMProvider
+
+# A long document must be simplified in pieces — one giant call gets truncated by
+# the model's max_tokens mid-document. We split on paragraph (then sentence)
+# boundaries so each piece is self-contained, simplify each, and rejoin.
+_CHUNK_CHARS = 2500
 
 _HARD_RULES = (
     "You rewrite complex text into clearer language for readers with cognitive "
@@ -57,13 +64,56 @@ def build_system(level: str = "plain", grade: int | None = None, lang: str = "en
     return _HARD_RULES + style + (f"\n{note}\n" if note else "")
 
 
+def _split_paragraph(paragraph: str, max_chars: int) -> list[str]:
+    """Split one over-long paragraph on sentence boundaries."""
+    out: list[str] = []
+    buf = ""
+    for sentence in re.split(r"(?<=[.!?…])\s+", paragraph):
+        if buf and len(buf) + len(sentence) + 1 > max_chars:
+            out.append(buf)
+            buf = sentence
+        else:
+            buf = f"{buf} {sentence}" if buf else sentence
+    if buf:
+        out.append(buf)
+    return out
+
+
+def chunk_text(text: str, max_chars: int = _CHUNK_CHARS) -> list[str]:
+    """Group paragraphs into chunks under max_chars, keeping paragraph
+    boundaries; an over-long paragraph is split by sentences."""
+    chunks: list[str] = []
+    buf = ""
+    for para in re.split(r"\n\s*\n", (text or "").strip()):
+        para = para.strip()
+        if not para:
+            continue
+        if len(para) > max_chars:
+            if buf:
+                chunks.append(buf)
+                buf = ""
+            chunks.extend(_split_paragraph(para, max_chars))
+        elif buf and len(buf) + len(para) + 2 > max_chars:
+            chunks.append(buf)
+            buf = para
+        else:
+            buf = f"{buf}\n\n{para}" if buf else para
+    if buf:
+        chunks.append(buf)
+    return chunks
+
+
 def simplify(
     text: str,
     level: str = "plain",
     provider: LLMProvider | None = None,
     grade: int | None = None,
     lang: str = "en",
+    max_chars: int = _CHUNK_CHARS,
 ) -> str:
     provider = provider or get_provider()
     system = build_system(level, grade, lang)
-    return provider.complete(system, text).strip()
+    parts = chunk_text(text, max_chars)
+    if len(parts) <= 1:
+        return provider.complete(system, text).strip()
+    return "\n\n".join(provider.complete(system, part).strip() for part in parts)
