@@ -323,6 +323,11 @@ Adding a language is one self-contained file plus a line in
 
 ## Roadmap
 
+Done so far (below) — and the forward plan lives in [ROADMAP.md](ROADMAP.md):
+known false positives in the faithfulness checker (number words, negation
+pairs), long-document chunking, OCR, pluggable symbol sets, UI localization,
+and validation with target readers.
+
 - [x] Core: simplify → verify → score, provider-agnostic, CLI, tests
 - [x] Reference UI: source ↔ simplified side by side, drift highlighted, approve
       (zero-dependency dev server; a full Next.js app is a later evolution)
