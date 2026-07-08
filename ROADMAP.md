@@ -17,14 +17,13 @@ real use. These are correctness work, not features.
   (value ≥ 100 or ≥ 2 words) to avoid prose noise. en/ru/es/de. *fr deferred:
   the soixante-dix / quatre-vingts system would misparse (24 for 80) — better to
   not extract than to extract a wrong value; needs a dedicated French parser.*
-- [ ] **Negation pairs.** Removing a double negative ("not permitted" →
-  "forbidden") is a classic simplification and currently warns. Fix: a small
-  per-language antonym/negated-form list so the warning only fires on genuine
-  polarity loss.
-- [ ] **Identifier noise.** "Form 27B", "office 14" are counted as quantities.
-  Fix: exclude numbers glued to identifiers (letter suffixes, "No.", "form/
-  office/room" contexts) from the quantity inventory — they still must survive,
-  but as identifiers, not amounts.
+- [x] **Negation pairs.** "not permitted" → "forbidden" no longer warns — a
+  per-language `negation_implicit` list (forbidden/prohibited/запрещено…)
+  suppresses the "lost negation" warning when the output re-expresses it.
+- [ ] **Identifier suffixes** (lower priority). "27B" reduces to "27", so
+  "Form 27A" vs "Form 27B" compare equal (a *missed difference*, not a false
+  positive — IDs otherwise match on both sides). Capture alphanumeric IDs as
+  atomic tokens, but carefully — naive matching also grabs "2nd", "mp3".
 - [ ] **Long documents.** `simplify` sends the whole text in one call;
   `max_tokens` truncates long PDFs mid-document. Fix: chunk by paragraphs/
   sections, simplify + verify per chunk, merge results. This is the blocker for

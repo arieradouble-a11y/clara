@@ -31,6 +31,9 @@ class EnglishPack(LanguagePack):
     months = _MONTHS
     negation = ["not", "no", "never", "cannot", "can't", "won't", "don't",
                 "doesn't", "didn't", "without", "neither", "nor"]
+    negation_implicit = ["forbidden", "prohibited", "banned", "denied", "refused",
+                         "illegal", "unable", "impossible", "excluded", "prevented",
+                         "barred", "prohibit", "forbid", "ban"]
     obligation = ["must", "shall", "required", "mandatory", "obliged",
                   "obligated", "have to", "has to"]
     condition = ["if", "unless", "except", "provided that", "only if",

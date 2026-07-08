@@ -46,7 +46,9 @@ def verify(source: str, output: str, lang: str = "en") -> FaithfulnessReport:
     dd, idt = _diff(s["dates"], o["dates"])
 
     warnings: list[str] = []
-    if s["negation"] and o["negation"] < s["negation"]:
+    # A dropped "not" is only worrying if the output didn't re-express it with an
+    # inherently-negative word ("forbidden", "prohibited", …).
+    if s["negation"] > o["negation"] + o["implicit_negation"]:
         warnings.append(
             f"Negation may be lost: source has {s['negation']} negation word(s), "
             f"simplified has {o['negation']}. Verify the meaning was not inverted."

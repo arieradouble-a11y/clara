@@ -36,6 +36,12 @@ def test_number_words_match_digits_both_directions():
     assert verify("The fine is 500 dollars.", "The fine is five hundred dollars.").ok
 
 
+def test_reexpressed_negation_does_not_warn():
+    # "not permitted" -> "forbidden" keeps the meaning; don't cry lost negation.
+    r = verify("It is not permitted to smoke here.", "Smoking is forbidden here.")
+    assert not r.warnings
+
+
 def test_lost_negation_warns_but_hard_facts_ok():
     r = verify("You must not enter.", "You must enter.")
     assert r.ok  # no numbers/dates changed

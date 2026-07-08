@@ -28,6 +28,10 @@ class LanguagePack:
     # Fact-extraction vocabulary
     months: dict = {}
     negation: list = []
+    # Words that carry negative polarity without an explicit "not" (forbidden,
+    # prohibited…). If the output uses one, a dropped "not" was likely just
+    # re-expressed, so we don't warn about lost negation.
+    negation_implicit: list = []
     obligation: list = []
     condition: list = []
 
@@ -54,6 +58,7 @@ class LanguagePack:
 
     def __init__(self):
         self.negation_re = self._markers(self.negation)
+        self.negation_implicit_re = self._markers(self.negation_implicit)
         self.obligation_re = self._markers(self.obligation)
         self.condition_re = self._markers(self.condition)
 

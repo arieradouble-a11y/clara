@@ -166,6 +166,7 @@ def inventory(text: str, lang: str = "en") -> dict:
         "quantities": Counter(quantities),
         "dates": Counter(dates),
         "negation": len(pack.negation_re.findall(text or "")),
+        "implicit_negation": len(pack.negation_implicit_re.findall(text or "")),
         "obligation": len(pack.obligation_re.findall(text or "")),
         "condition": len(pack.condition_re.findall(text or "")),
     }
