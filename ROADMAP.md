@@ -73,8 +73,12 @@ are all **done**.
 - [ ] **Localize the UIs themselves.** The chrome is English-only — ironic for
   an accessibility tool. Dictionary-based UI strings for ru/es/de/fr in both
   the reference UI and the Next app.
-- [ ] **WCAG audit of our own UIs** (axe + keyboard + screen reader pass) and a
-  stated conformance level. An accessibility tool must dogfood accessibility.
+- [x] **WCAG audit of our own UIs** and a stated conformance level — see
+  [ACCESSIBILITY.md](ACCESSIBILITY.md). The reference UI targets **WCAG 2.2 AA**
+  (manual audit + accessibility tree + keyboard): language-of-parts on content
+  panels, ARIA tabs keyboard pattern, reduced-motion scrolling, verified
+  contrast. *Remaining: an automated axe-core CI gate, the Next.js app, and
+  testing with real assistive-tech users.*
 - [ ] **Validation with target readers.** The Easy Read standard (Inclusion
   Europe) requires validation by people with intellectual disabilities. Find a
   partner NGO / SLP group, run a small validation protocol, publish the

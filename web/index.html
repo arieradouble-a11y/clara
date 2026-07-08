@@ -325,16 +325,33 @@ const deriveTitle = (src) => {
   return first.length > 60 ? first.slice(0, 57) + "…" : first;
 };
 
+// Respect prefers-reduced-motion for programmatic scrolling (WCAG 2.3.3).
+const SCROLL = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+
+const MODES = ["simplify", "check", "reviews"];
 function setMode(mode) {
-  ["simplify", "check", "reviews"].forEach((m) => {
-    $("tab-" + m).setAttribute("aria-selected", String(m === mode));
-    $("panel-" + m).classList.toggle("hidden", m !== mode);
+  MODES.forEach((m) => {
+    const selected = m === mode;
+    const tab = $("tab-" + m);
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;      // roving tabindex (ARIA tabs pattern)
+    $("panel-" + m).classList.toggle("hidden", !selected);
   });
   if (mode === "reviews") loadReviews();
 }
-$("tab-simplify").onclick = () => setMode("simplify");
-$("tab-check").onclick = () => setMode("check");
-$("tab-reviews").onclick = () => setMode("reviews");
+MODES.forEach((m) => { $("tab-" + m).onclick = () => setMode(m); });
+
+// Arrow / Home / End move between tabs, per the WAI-ARIA tabs keyboard pattern.
+$("tab-simplify").parentElement.addEventListener("keydown", (e) => {
+  const keys = { ArrowRight: 1, ArrowLeft: -1, Home: "home", End: "end" };
+  if (!(e.key in keys)) return;
+  e.preventDefault();
+  const cur = MODES.indexOf(MODES.find((m) => $("tab-" + m).getAttribute("aria-selected") === "true"));
+  let next = keys[e.key] === "home" ? 0 : keys[e.key] === "end" ? MODES.length - 1
+    : (cur + keys[e.key] + MODES.length) % MODES.length;
+  setMode(MODES[next]);
+  $("tab-" + MODES[next]).focus();
+});
 $("level").onchange = (e) => {
   $("grade-field").classList.toggle("hidden", e.target.value !== "grade");
   $("symbols-field").classList.toggle("hidden", e.target.value !== "easy_read");
@@ -391,6 +408,7 @@ function renderResult({ original, output, srcR, outR, faith, labelB, level }) {
   $("view-easyread").classList.add("hidden");
   $("outA").classList.remove("structured");
   $("outB").classList.remove("structured");
+  $("outA").lang = $("outB").lang = $("lang").value;   // language of parts (WCAG 3.1.2)
   $("outA").textContent = original;
   $("outB").textContent = output;
   $("labelB").textContent = labelB;
@@ -406,7 +424,7 @@ function renderResult({ original, output, srcR, outR, faith, labelB, level }) {
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
   $("results").classList.remove("hidden");
-  $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("results").scrollIntoView({ behavior: SCROLL, block: "nearest" });
 }
 
 // Structured simplify: keep headings and lists in both panels and in the export.
@@ -415,6 +433,7 @@ function renderStructured(d, level) {
   $("view-easyread").classList.add("hidden");
   $("outA").classList.add("structured");
   $("outB").classList.add("structured");
+  $("outA").lang = $("outB").lang = $("lang").value;   // language of parts (WCAG 3.1.2)
   $("outA").innerHTML = blocksToHtml(ingestedBlocks);
   $("outB").innerHTML = blocksToHtml(d.blocks);
   $("labelB").textContent = "Simplified";
@@ -431,13 +450,14 @@ function renderStructured(d, level) {
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
   $("results").classList.remove("hidden");
-  $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("results").scrollIntoView({ behavior: SCROLL, block: "nearest" });
 }
 
 function renderEasyRead(d) {
   $("view-standard").classList.add("hidden");
   $("view-easyread").classList.remove("hidden");
   $("erOrig").textContent = d.original;
+  $("erOrig").lang = $("er-lines").lang = $("lang").value;   // language of parts (WCAG 3.1.2)
   $("metrics").innerHTML = metricsHtml(d.source_readability, d.output_readability);
   erLines = d.lines.map((l) => ({ ...l }));   // own copy — the reviewer edits pictures
   erOriginal = d.original;
@@ -452,7 +472,7 @@ function renderEasyRead(d) {
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
   $("results").classList.remove("hidden");
-  $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("results").scrollIntoView({ behavior: SCROLL, block: "nearest" });
 }
 
 // Each line's picture is a button; clicking it (or "Change") opens the picker so
@@ -865,7 +885,7 @@ function renderReviewDetail(r) {
     $("rv-assign").onclick = () => assignReview(r.id);
   }
   $("review-detail").classList.remove("hidden");
-  $("review-detail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("review-detail").scrollIntoView({ behavior: SCROLL, block: "nearest" });
 }
 
 async function populateAssignees(currentId) {
@@ -924,6 +944,7 @@ $("ex-check").onclick = () => {
   setMode("check");
 };
 
+setMode("simplify");   // normalize roving tabindex on load
 loadAuth();
 </script>
 </body>
