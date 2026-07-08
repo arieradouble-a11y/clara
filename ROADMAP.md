@@ -43,9 +43,10 @@ identifier suffixes remain (lower priority — see below).
 - [ ] **Structure preservation.** Headings and lists from DOCX/HTML currently
   flatten to paragraphs; carry them through simplification into the exported
   HTML/PDF (h2/h3, ul/ol).
-- [ ] **Semantic check with a second opinion.** Allow the semantic faithfulness
-  check to run on a *different* provider than the one that simplified
-  (anti-self-grading). One parameter, honest win.
+- [x] **Semantic check with a second opinion.** The semantic faithfulness check
+  can run on a *different* provider than the one that simplified
+  (anti-self-grading) via `CLARA_CHECK_PROVIDER` / `--check-provider`. Falls back
+  to the simplify provider when no second one is configured.
 
 ## Phase 3 — Easy Read that experts accept
 

@@ -25,7 +25,7 @@ from clara.auth import AuthStore, auth_enabled, bearer_token
 from clara.easyread import easy_read
 from clara.export import document_html, document_pdf
 from clara.ingest import from_url, ingest_bytes
-from clara.llm import get_provider
+from clara.llm import get_check_provider, get_provider
 from clara.review import ReviewStore
 from clara.pipeline import simplify_text
 from clara.readability import analyze
@@ -81,7 +81,7 @@ class SemanticRequest(BaseModel):
     source: str
     output: str
     lang: str = "en"
-    provider: str | None = None
+    provider: str | None = None        # falls back to CLARA_CHECK_PROVIDER / default
 
 
 class ExportRequest(BaseModel):
@@ -132,7 +132,9 @@ def easyread_endpoint(req: EasyReadRequest) -> dict:
 
 @app.post("/semantic")
 def semantic_endpoint(req: SemanticRequest) -> dict:
-    provider = get_provider(req.provider) if req.provider else None
+    # The check runs on an independent grader by default (CLARA_CHECK_PROVIDER),
+    # so a model never grades its own rewrite; an explicit provider overrides it.
+    provider = get_check_provider(req.provider)
     return semantic_dict(semantic_check(req.source, req.output, provider=provider, lang=req.lang))
 
 

@@ -42,6 +42,11 @@ typed issues (omission / addition / contradiction / distortion). It costs a mode
 call, so it is opt-in, and it degrades to "unavailable" rather than guessing when
 no capable provider answers.
 
+By default the check can run on an **independent grader** so a model never grades
+its own rewrite (models tend to approve their own output). Set
+`CLARA_CHECK_PROVIDER` — or pass `--check-provider` — to point the semantic check
+at a different provider than the one that did the simplification.
+
 ### 2. Human-in-the-loop by principle
 The Easy Read standard (Inclusion Europe) asks that simplified text be validated
 by the people it is for. Clara is built to **assist authors and reviewers**, not

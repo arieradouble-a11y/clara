@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from .auth import AuthStore
 from .easyread import easy_read
 from .export import document_html
 from .ingest import from_url, ingest_file
-from .llm import get_provider
+from .llm import get_check_provider, get_provider
 from .pipeline import simplify_text
 from .readability import analyze
 from .review import ReviewStore
@@ -78,11 +79,14 @@ def cmd_simplify(args) -> int:
             print("  ! ", w)
 
     if args.semantic:
-        rep = semantic_check(res.original, res.simplified, provider=provider, lang=args.lang)
+        checker = get_check_provider(args.check_provider)
+        rep = semantic_check(res.original, res.simplified, provider=checker, lang=args.lang)
+        grader = args.check_provider or os.environ.get("CLARA_CHECK_PROVIDER")
         if not rep.available:
             print("AI check    : unavailable (configure a real provider)")
         elif rep.faithful and not rep.issues:
-            print("AI check    : faithful (no meaning drift)")
+            note = f" (graded by {grader})" if grader else ""
+            print(f"AI check    : faithful (no meaning drift){note}")
         else:
             print("AI check    : REVIEW")
             for i in rep.issues:
@@ -213,6 +217,9 @@ def main(argv=None) -> int:
     s.add_argument("--lang", default="en", help="Language pack (en, ru)")
     s.add_argument("--provider", default=None, help="mock | openai | anthropic | ollama")
     s.add_argument("--semantic", action="store_true", help="Also run an LLM semantic faithfulness check")
+    s.add_argument("--check-provider", default=None,
+                   help="Provider for the --semantic check, so a model doesn't grade its own "
+                        "rewrite (default: CLARA_CHECK_PROVIDER, else the simplify provider)")
     s.add_argument("--html", action="store_true", help="Output an accessible HTML document")
     s.add_argument("--json", action="store_true", help="Machine-readable output")
     s.set_defaults(func=cmd_simplify)

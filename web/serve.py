@@ -26,7 +26,7 @@ from clara.auth import AuthStore, auth_enabled, bearer_token  # noqa: E402
 from clara.easyread import easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
-from clara.llm import get_provider  # noqa: E402
+from clara.llm import get_check_provider, get_provider  # noqa: E402
 from clara.review import ReviewStore  # noqa: E402
 from clara.pipeline import simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
@@ -118,7 +118,7 @@ class Handler(BaseHTTPRequestHandler):
                 res = easy_read(data.get("text", ""), provider=provider, lang=data.get("lang", "en"))
                 self._send_json(easyread_dict(res))
             elif self.path == "/semantic":
-                provider = get_provider(data.get("provider"))
+                provider = get_check_provider(data.get("provider"))  # independent grader by default
                 rep = semantic_check(data.get("source", ""), data.get("output", ""),
                                      provider=provider, lang=data.get("lang", "en"))
                 self._send_json(semantic_dict(rep))

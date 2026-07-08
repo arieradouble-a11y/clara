@@ -31,6 +31,20 @@ def get_provider(name: str | None = None, **kwargs) -> LLMProvider:
     return _REGISTRY[name](**kwargs)
 
 
+def get_check_provider(name: str | None = None, **kwargs) -> LLMProvider:
+    """Resolve the provider for the *faithfulness check*, kept separate from the
+    simplifier so a model never grades its own rewrite.
+
+    A model asked whether its own output is faithful tends to say yes; a second,
+    independent model is a more honest judge. Resolution order: the explicit
+    `name`, then CLARA_CHECK_PROVIDER, then the normal CLARA_PROVIDER default. So
+    the check falls back to the same provider when no second one is configured —
+    still useful, just not anti-self-grading.
+    """
+    name = name or os.environ.get("CLARA_CHECK_PROVIDER")
+    return get_provider(name, **kwargs)
+
+
 __all__ = [
     "LLMProvider",
     "MockProvider",
@@ -38,4 +52,5 @@ __all__ = [
     "AnthropicProvider",
     "OllamaProvider",
     "get_provider",
+    "get_check_provider",
 ]
