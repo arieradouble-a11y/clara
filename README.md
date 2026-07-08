@@ -1,5 +1,8 @@
 # Clara
 
+[![CI](https://github.com/arieradouble-a11y/clara/actions/workflows/ci.yml/badge.svg)](https://github.com/arieradouble-a11y/clara/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Turn complex text into verified plain language.**
 
 Clara rewrites bureaucratic, legal, and medical text into clearer language for
