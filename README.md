@@ -55,6 +55,12 @@ to be an oracle. It shows the original next to the rewrite with drift
 highlighted and expects a human to approve — which is both the ethical stance
 and the reason it can be trusted with legal and medical content.
 
+That validation must ultimately come from the readers themselves: the method is
+written up in [docs/validation-protocol.md](docs/validation-protocol.md), and it
+has not been run yet — which is exactly why Clara stays *assistive, not
+authoritative*. The interfaces' own accessibility is stated in
+[ACCESSIBILITY.md](ACCESSIBILITY.md).
+
 ---
 
 ## Quickstart

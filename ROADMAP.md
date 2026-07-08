@@ -79,11 +79,13 @@ are all **done**.
   panels, ARIA tabs keyboard pattern, reduced-motion scrolling, verified
   contrast. *Remaining: an automated axe-core CI gate, the Next.js app, and
   testing with real assistive-tech users.*
-- [ ] **Validation with target readers.** The Easy Read standard (Inclusion
-  Europe) requires validation by people with intellectual disabilities. Find a
-  partner NGO / SLP group, run a small validation protocol, publish the
-  method and findings. Until then the README must keep saying "assistive, not
-  authoritative" — and it will stay true after, too.
+- [~] **Validation with target readers.** The Easy Read standard (Inclusion
+  Europe) requires validation by people with intellectual disabilities. The
+  **method is drafted and published** —
+  [docs/validation-protocol.md](docs/validation-protocol.md) — but the validation
+  itself is human work that **cannot be done in code**: it needs a partner NGO /
+  SLP self-advocacy group. Until a round is run and published, the README keeps
+  saying "assistive, not authoritative" — and it stays true after, too.
 - [x] **Review workflow hardening**: approve/reject now requires an admin or the
   review's assigned validator (`can_approve`), per-review assignment
   (`assign_review` + admin-only `/reviews/assign`, `/auth/users`), login
