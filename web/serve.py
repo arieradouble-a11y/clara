@@ -36,9 +36,9 @@ from clara.i18n import ui_strings  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
 from clara.llm import get_check_provider, get_provider  # noqa: E402
 from clara.pictograms import get_symbol_provider  # noqa: E402
-from clara.review import ReviewStore  # noqa: E402
 from clara.pipeline import simplify_structured, simplify_text  # noqa: E402
 from clara.readability import analyze  # noqa: E402
+from clara.review import ReviewStore  # noqa: E402
 from clara.semantic import semantic_check  # noqa: E402
 from clara.serialize import (  # noqa: E402
     easyread_dict,
@@ -191,7 +191,10 @@ class Handler(BaseHTTPRequestHandler):
                     except RateLimitedError as e:
                         self._send_json({"error": str(e)}, 429)
                     else:
-                        self._send_json(result) if result else self._send_json({"error": "Invalid username or password."}, 401)
+                        if result:
+                            self._send_json(result)
+                        else:
+                            self._send_json({"error": "Invalid username or password."}, 401)
             elif self.path == "/auth/users":
                 user, ok = self._require_user()
                 if not ok:
@@ -241,9 +244,10 @@ class Handler(BaseHTTPRequestHandler):
                 if not ok:
                     return
                 current = _reviews.get_review(data.get("id"))
+                signoff = data.get("status") in ("approved", "rejected")
                 if not current:
                     self._send_json({"error": "not found"}, 404)
-                elif data.get("status") in ("approved", "rejected") and not can_approve(user, current.get("assignee_id")):
+                elif signoff and not can_approve(user, current.get("assignee_id")):
                     self._send_json({"error": "Only an admin or the assigned validator can approve or reject."}, 403)
                 else:
                     try:

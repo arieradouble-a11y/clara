@@ -30,7 +30,7 @@ class RateLimitedError(Exception):
 
 
 def is_admin(user: dict | None) -> bool:
-    return bool(user) and user.get("role") == "admin"
+    return user is not None and user.get("role") == "admin"
 
 
 def can_approve(user: dict | None, assignee_id: int | None) -> bool:
@@ -143,8 +143,8 @@ class AuthStore:
                     (username, hash_password(password), role, now),
                 )
                 uid = cur.lastrowid
-        except sqlite3.IntegrityError:
-            raise ValueError(f"User '{username}' already exists.")
+        except sqlite3.IntegrityError as e:
+            raise ValueError(f"User '{username}' already exists.") from e
         return {"id": uid, "username": username, "role": role, "created_at": now}
 
     def authenticate(self, username: str, password: str) -> dict | None:

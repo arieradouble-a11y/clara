@@ -9,7 +9,7 @@ Public API:
 from .easyread import EasyReadResult, easy_read
 from .export import document_html, document_pdf
 from .facts import inventory
-from .ingest import IngestResult, ingest_file, from_url
+from .ingest import IngestResult, from_url, ingest_file
 from .pipeline import SimplifyResult, simplify_text
 from .readability import Readability, analyze
 from .semantic import SemanticReport, semantic_check

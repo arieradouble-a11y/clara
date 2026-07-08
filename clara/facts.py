@@ -168,7 +168,8 @@ def _extract_number_words(text: str, pack) -> list[str]:
     out: list[str] = []
     i, n = 0, len(tokens)
     while i < n:
-        run, count = [], 0
+        run: list[str] = []
+        count = 0
         while i < n and (tokens[i] in units or tokens[i] in scales or (run and tokens[i] in join)):
             if tokens[i] not in join:
                 count += 1

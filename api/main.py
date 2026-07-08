@@ -13,13 +13,12 @@ For a zero-dependency dev server, see web/serve.py instead.
 """
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
-
-import base64
 
 from clara.auth import (
     AuthStore,
@@ -35,9 +34,9 @@ from clara.i18n import ui_strings
 from clara.ingest import from_url, ingest_bytes
 from clara.llm import get_check_provider, get_provider
 from clara.pictograms import get_symbol_provider
-from clara.review import ReviewStore
 from clara.pipeline import simplify_structured, simplify_text
 from clara.readability import analyze
+from clara.review import ReviewStore
 from clara.semantic import semantic_check
 from clara.serialize import (
     easyread_dict,

@@ -136,8 +136,8 @@ class ArasaacProvider(SymbolProvider):
         cache = _cache_read("arasaac.json")
         key = f"{lang}:{keyword}"
         if key in cache:
-            pid = cache[key]
-            return self._symbol(pid, keyword) if pid else None
+            hit = cache[key]
+            return self._symbol(hit, keyword) if hit else None
 
         pid: int | None = None
         definitive = False
@@ -203,13 +203,14 @@ class MulberryProvider(SymbolProvider):
     _RAW = "https://raw.githubusercontent.com/mulberrysymbols/mulberry-symbols/master/EN"
     _VARIANT = re.compile(r"_\d+[a-z]?$")  # trailing "_2", "_1a" mark near-duplicates
 
-    _names: list[str] | None = None
-    _tokens: dict[str, list[str]] | None = None   # first token -> filenames
-    _exact: dict[str, str] | None = None          # full normalized label -> filename
+    _loaded = False
+    _names: list[str] = []
+    _tokens: dict[str, list[str]] = {}   # first token -> filenames
+    _exact: dict[str, str] = {}          # full normalized label -> filename
 
     @classmethod
     def _index(cls):
-        if cls._names is not None:
+        if cls._loaded:
             return
         try:
             raw = json.loads((_DATA_DIR / "mulberry_en.json").read_text(encoding="utf-8"))
@@ -229,6 +230,7 @@ class MulberryProvider(SymbolProvider):
                 exact[label] = n
             tokens.setdefault(toks[0], []).append(n)
         cls._tokens, cls._exact = tokens, exact
+        cls._loaded = True
 
     @staticmethod
     def _norm(name: str) -> str:
@@ -290,7 +292,7 @@ def get_symbol_provider(name: str | None = None) -> SymbolProvider:
 # Existing callers used these module functions before the provider split; they
 # stay ARASAAC-specific so nothing silently changes symbol set underneath them.
 
-def best_id(keyword: str, lang: str = "en", *, timeout: float = 8.0) -> int | None:
+def best_id(keyword: str, lang: str = "en", *, timeout: float = 8.0) -> int | str | None:
     s = ArasaacProvider().best(keyword, lang, timeout=timeout)
     return s.id if s else None
 

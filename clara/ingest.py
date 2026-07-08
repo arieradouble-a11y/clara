@@ -227,10 +227,10 @@ def _ocr_pdf(data: bytes) -> str:
             'OCR needs the [ocr] extra: pip install "clara[ocr]" and install the '
             "tesseract binary (e.g. apt install tesseract-ocr, or the Windows build)."
         ) from e
-    from pypdf import PdfReader
-
     import os
     import tempfile
+
+    from pypdf import PdfReader
 
     with tempfile.TemporaryDirectory() as d:
         inp = os.path.join(d, "in.pdf")

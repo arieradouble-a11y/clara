@@ -21,7 +21,7 @@ _STOP = {
     "en", "que", "qui", "dans", "pour", "par", "sur", "ne", "pas", "se", "ce",
     "cette", "ces", "il", "elle", "ils", "elles", "on", "nous", "vous", "je",
     "tu", "est", "sont", "être", "avec", "plus", "son", "sa", "ses", "leur",
-    "leurs", "mais", "ou", "où", "comme", "si", "ils", "y", "d", "l", "qu",
+    "leurs", "mais", "ou", "où", "comme", "si", "y", "d", "l", "qu",
 }
 
 

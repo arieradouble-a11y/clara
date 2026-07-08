@@ -56,9 +56,10 @@ class EasyReadLine:
 class EasyReadResult:
     original: str
     lines: list[EasyReadLine] = field(default_factory=list)
-    source_readability: Readability = None
-    output_readability: Readability = None
-    faithfulness: FaithfulnessReport = None
+    # Always set by easy_read(); the None default is just a dataclass placeholder.
+    source_readability: Readability = None  # type: ignore[assignment]
+    output_readability: Readability = None  # type: ignore[assignment]
+    faithfulness: FaithfulnessReport = None  # type: ignore[assignment]
     symbol_source: str | None = None   # the symbol set used (arasaac / mulberry)
 
 

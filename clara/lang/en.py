@@ -47,7 +47,7 @@ class EnglishPack(LanguagePack):
         "available", "applicable", "relevant", "additional", "further", "current",
         "previous", "final", "total", "full", "main", "only", "also", "very",
         "more", "most", "less", "least", "many", "much", "several", "few", "own",
-        "due", "able", "each", "every", "both", "either", "another", "own",
+        "due", "able", "each", "every", "both", "either", "another",
     }
 
     number_units = {

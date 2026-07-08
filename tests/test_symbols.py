@@ -7,7 +7,6 @@ from clara.pictograms import (
     get_symbol_provider,
 )
 
-
 # --- registry -----------------------------------------------------------------
 
 def test_default_provider_is_arasaac(monkeypatch):

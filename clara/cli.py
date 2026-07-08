@@ -21,11 +21,11 @@ from .export import document_html
 from .ingest import from_text, from_url, ingest_file
 from .llm import get_check_provider, get_provider
 from .pipeline import simplify_structured, simplify_text
-from .structure import block_dict
 from .readability import analyze
 from .review import ReviewStore
 from .semantic import semantic_check
 from .serialize import easyread_dict, easyread_line_dict, readability_dict, result_dict
+from .structure import block_dict
 
 
 def _read_ingest(args):
@@ -232,7 +232,7 @@ def _add_io_args(p) -> None:
 
 def main(argv=None) -> int:
     try:
-        sys.stdout.reconfigure(encoding="utf-8")  # Windows consoles default to cp1251
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]  # Windows consoles default to cp1251
     except Exception:
         pass
 

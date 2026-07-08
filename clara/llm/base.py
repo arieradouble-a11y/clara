@@ -74,10 +74,11 @@ class AnthropicProvider(LLMProvider):
     """Anthropic Messages API."""
 
     def __init__(self, api_key=None, model=None):
-        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
-        self.model = model or os.environ.get("CLARA_MODEL", "claude-sonnet-5")
-        if not self.api_key:
+        key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        if not key:
             raise RuntimeError("ANTHROPIC_API_KEY is not set")
+        self.api_key: str = key
+        self.model = model or os.environ.get("CLARA_MODEL", "claude-sonnet-5")
 
     def complete(self, system, prompt, *, max_tokens=2000, temperature=0.2):
         import httpx

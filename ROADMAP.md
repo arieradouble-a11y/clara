@@ -107,8 +107,10 @@ are all **done**.
   runs the single-process reference server; a multi-stage `web-next/Dockerfile`
   (Next standalone output); and a `docker-compose.yml` wiring uvicorn + Next
   (`CLARA_API` proxy). `.dockerignore` for both.
-- [ ] **CI hardening**: ruff + mypy on the engine, JS syntax check for the
-  reference UI. **good first issue**
+- [x] **CI hardening**: a `lint` job runs **ruff** (E/F/W/I/B/UP) on
+  `clara`/`api`/`web`/`tests`, **mypy** on the engine (`clara`), and a **JS
+  syntax check** of the reference UI's inline script (`scripts/check_ui_js.py`,
+  which has no build step to catch it otherwise). `pip install -e ".[lint]"`.
 - [ ] **Public demo instance** (mock or rate-limited provider) so people can
   try it without installing.
 

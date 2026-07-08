@@ -115,7 +115,7 @@ class ReviewStore:
 
     def create_review(self, *, title, source, output, lang="en", level="plain",
                        kind="text", meta=None, faithful=None, status="in_review",
-                       created_by=None, created_by_name=None) -> dict:
+                       created_by=None, created_by_name=None) -> dict | None:
         if status not in STATUSES:
             raise ValueError(f"Unknown status '{status}'.")
         now = _now()

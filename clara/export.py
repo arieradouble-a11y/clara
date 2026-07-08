@@ -81,7 +81,7 @@ def _blocks_html(blocks: list) -> str:
     return "\n".join(out) or "<p></p>"
 
 
-def _easyread_html(lines: list, embed_images: bool = False) -> str:
+def _easyread_html(lines: list | None, embed_images: bool = False) -> str:
     items = []
     for ln in lines or []:
         url = ln.get("image_url")
