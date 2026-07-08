@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { api, download } from "@/lib/api";
 import type { NormalizedResult, SemanticReport } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 import { ReadabilityBadges } from "./ReadabilityBadges";
 import { FaithfulnessCard } from "./FaithfulnessCard";
 import { SemanticCard } from "./SemanticCard";
@@ -15,6 +16,7 @@ const FOOTER =
 // Shared result view + actions for Simplify, Check, and Easy Read. Reset its
 // internal state by giving it a fresh `key` on each new run.
 export function ResultPanel({ result }: { result: NormalizedResult }) {
+  const { t } = useI18n();
   const [semantic, setSemantic] = useState<SemanticReport | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,17 +79,17 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
 
       {isEasy ? (
         <>
-          <div className="card panel" style={{ marginBottom: 12 }}>
-            <h3>Original</h3>
+          <div className="card panel" style={{ marginBottom: 12 }} lang={result.lang}>
+            <h3>{t("original")}</h3>
             <div className="body">{result.original}</div>
           </div>
           <EasyReadLines lines={result.lines ?? []} />
         </>
       ) : (
         <div className="grid2">
-          <div className="card panel"><h3>Original</h3><div className="body">{result.original}</div></div>
-          <div className="card panel">
-            <h3>{result.level === "check" ? "Rewrite" : "Simplified"}</h3>
+          <div className="card panel" lang={result.lang}><h3>{t("original")}</h3><div className="body">{result.original}</div></div>
+          <div className="card panel" lang={result.lang}>
+            <h3>{result.level === "check" ? t("rewrite") : t("simplified")}</h3>
             <div className="body">{result.outputText}</div>
           </div>
         </div>
@@ -98,18 +100,18 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
       {error && <div className="error" role="alert">{error}</div>}
 
       <div className="actions">
-        <button className="btn secondary" onClick={runSemantic}>Run AI semantic check</button>
-        <button className="btn secondary" onClick={() => doExport("html")}>Download HTML</button>
-        <button className="btn secondary" onClick={() => doExport("pdf")}>Download tagged PDF</button>
+        <button className="btn secondary" onClick={runSemantic}>{t("run_semantic")}</button>
+        <button className="btn secondary" onClick={() => doExport("html")}>{t("download_html")}</button>
+        <button className="btn secondary" onClick={() => doExport("pdf")}>{t("download_pdf")}</button>
         {isEasy && (
           <label style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--muted)" }}>
             <input type="checkbox" checked={embed} onChange={(e) => setEmbed(e.target.checked)} />
-            Embed pictures (offline)
+            {t("embed_pics")}
           </label>
         )}
-        <button className="btn secondary" onClick={save}>Save to review</button>
+        <button className="btn secondary" onClick={save}>{t("save_review")}</button>
         {savedId != null && (
-          <span className="hint">Saved — <Link href="/reviews">open in Reviews</Link> (#{savedId}).</span>
+          <span className="hint">{t("saved")} — <Link href="/reviews">{t("open_in_reviews")}</Link> (#{savedId}).</span>
         )}
       </div>
     </section>

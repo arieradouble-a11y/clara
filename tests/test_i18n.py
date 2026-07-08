@@ -31,3 +31,19 @@ def test_placeholders_preserved_in_every_language():
 
 def test_private_keys_excluded():
     assert not any(k.startswith("_") for k in ui_strings())  # _note is stripped
+
+
+def test_next_app_bundled_catalog_matches_source():
+    # The Next app bundles a copy for an instant, offline-safe first render; it
+    # must stay byte-identical to the canonical catalog.
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    src = json.loads((root / "clara" / "data" / "ui_i18n.json").read_text(encoding="utf-8"))
+    bundled_path = root / "web-next" / "lib" / "ui_i18n.json"
+    if not bundled_path.exists():
+        import pytest
+        pytest.skip("web-next not present")
+    bundled = json.loads(bundled_path.read_text(encoding="utf-8"))
+    assert bundled == src, "web-next/lib/ui_i18n.json drifted from clara/data/ui_i18n.json"

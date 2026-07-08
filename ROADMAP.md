@@ -70,9 +70,12 @@ are all **done**.
 
 ## Phase 4 — People (this is a social project)
 
-- [ ] **Localize the UIs themselves.** The chrome is English-only — ironic for
-  an accessibility tool. Dictionary-based UI strings for ru/es/de/fr in both
-  the reference UI and the Next app.
+- [x] **Localize the UIs themselves.** A shared string catalog
+  (`clara/data/ui_i18n.json`, 111 keys × en/ru/es/de/fr) served at `/i18n` drives
+  both the reference UI (`data-i18n` + a `t()` helper) and the Next app (an
+  `I18nProvider`/`useI18n` hook, with the catalog bundled for an instant,
+  offline-safe first render). The language selector switches chrome + content
+  language and updates `<html lang>`. A parity + drift test guards the catalog.
 - [x] **WCAG audit of our own UIs** and a stated conformance level — see
   [ACCESSIBILITY.md](ACCESSIBILITY.md). The reference UI targets **WCAG 2.2 AA**
   (manual audit + accessibility tree + keyboard): language-of-parts on content

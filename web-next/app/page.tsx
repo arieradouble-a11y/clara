@@ -3,16 +3,16 @@
 import { useState, type ChangeEvent } from "react";
 import { api, toBase64 } from "@/lib/api";
 import {
-  LANGUAGES,
   type EasyReadResult,
   type NormalizedResult,
   type SimplifyResult,
 } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 import { ResultPanel } from "@/components/ResultPanel";
 
 export default function SimplifyPage() {
+  const { t, lang } = useI18n();   // the global language selector drives content + chrome
   const [text, setText] = useState("");
-  const [lang, setLang] = useState("en");
   const [level, setLevel] = useState("plain");
   const [grade, setGrade] = useState(5);
   const [url, setUrl] = useState("");
@@ -22,7 +22,7 @@ export default function SimplifyPage() {
   const [runId, setRunId] = useState(0);
 
   async function run() {
-    if (!text.trim()) return setError("Enter some text to simplify.");
+    if (!text.trim()) return setError(t("enter_text"));
     setBusy(true);
     setError(null);
     try {
@@ -92,22 +92,22 @@ export default function SimplifyPage() {
 
   return (
     <>
-      <h1>Simplify</h1>
-      <p className="sub">Turn complex text into verified plain language.</p>
+      <h1>{t("tab_simplify")}</h1>
+      <p className="sub">{t("sub_simplify")}</p>
 
       <div className="card">
         <div className="actions" style={{ marginBottom: 12 }}>
           <input
             type="text"
-            placeholder="Import from a URL…"
-            aria-label="Import from a URL"
+            placeholder={t("import_url_ph")}
+            aria-label={t("import_url_ph")}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             style={{ flex: 1, minWidth: 200 }}
           />
-          <button className="btn secondary" onClick={importUrl}>Import URL</button>
+          <button className="btn secondary" onClick={importUrl}>{t("import_url")}</button>
           <label className="btn secondary" style={{ cursor: "pointer" }}>
-            Import file
+            {t("import_file")}
             <input
               type="file"
               accept=".txt,.html,.htm,.pdf,.docx"
@@ -117,34 +117,26 @@ export default function SimplifyPage() {
           </label>
         </div>
 
-        <label htmlFor="src">Source text</label>
+        <label htmlFor="src">{t("source")}</label>
         <textarea
           id="src"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Paste a dense notice, contract clause, or medical instruction…"
+          placeholder={t("source_ph")}
         />
 
         <div className="row">
           <div className="field">
-            <label htmlFor="lang">Language</label>
-            <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)}>
-              {LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>{l.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label htmlFor="level">Level</label>
+            <label htmlFor="level">{t("level")}</label>
             <select id="level" value={level} onChange={(e) => setLevel(e.target.value)}>
-              <option value="plain">Plain Language</option>
-              <option value="easy_read">Easy Read</option>
-              <option value="grade">Target grade</option>
+              <option value="plain">{t("level_plain")}</option>
+              <option value="easy_read">{t("level_easy")}</option>
+              <option value="grade">{t("level_grade")}</option>
             </select>
           </div>
           {level === "grade" && (
             <div className="field">
-              <label htmlFor="grade">Grade</label>
+              <label htmlFor="grade">{t("grade")}</label>
               <input
                 id="grade"
                 type="text"
@@ -156,13 +148,10 @@ export default function SimplifyPage() {
             </div>
           )}
           <button className="btn" onClick={run} disabled={busy}>
-            {busy ? "Working…" : "Simplify"}
+            {busy ? t("working") : t("simplify")}
           </button>
         </div>
-        <p className="hint" style={{ marginTop: 10 }}>
-          Runs on the backend&apos;s configured model. With the default <code>mock</code> provider it
-          echoes the text — set <code>CLARA_PROVIDER</code> for real rewriting.
-        </p>
+        <p className="hint" style={{ marginTop: 10 }}>{t("provider_hint")}</p>
       </div>
 
       {error && <div className="error" role="alert">{error}</div>}

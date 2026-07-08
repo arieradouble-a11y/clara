@@ -1,6 +1,10 @@
+"use client";
+
 import type { EasyReadLine } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 export function EasyReadLines({ lines }: { lines: EasyReadLine[] }) {
+  const { t } = useI18n();
   return (
     <div>
       {lines.map((l, i) => (
@@ -9,7 +13,7 @@ export function EasyReadLines({ lines }: { lines: EasyReadLine[] }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={l.image_url} alt={l.keyword ?? ""} loading="lazy" />
           ) : (
-            <div className="noimg">no picture</div>
+            <div className="noimg">{t("no_picture")}</div>
           )}
           <span className="er-text">{l.text}</span>
         </div>

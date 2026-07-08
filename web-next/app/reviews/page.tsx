@@ -3,16 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
+import { useI18n } from "@/lib/i18n";
 import type { Review, ReviewSummary } from "@/lib/types";
 
 const STATUSES = ["", "in_review", "changes_requested", "approved", "rejected", "draft"];
-
-function StatusBadge({ status }: { status: string }) {
-  return <span className={`badge-status st-${status}`}>{status.replace(/_/g, " ")}</span>;
-}
+const STATUS_KEY: Record<string, string> = {
+  in_review: "filter_in_review", changes_requested: "filter_changes_requested",
+  approved: "filter_approved", rejected: "filter_rejected", draft: "filter_draft",
+};
 
 export default function ReviewsPage() {
   const auth = useAuth();
+  const { t } = useI18n();
+  const statusLabel = (s: string) => (s ? (STATUS_KEY[s] ? t(STATUS_KEY[s]) : s.replace(/_/g, " ")) : t("filter_all"));
+  const StatusBadge = ({ status }: { status: string }) =>
+    <span className={`badge-status st-${status}`}>{statusLabel(status)}</span>;
   const [rows, setRows] = useState<ReviewSummary[]>([]);
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<Review | null>(null);
@@ -66,14 +71,14 @@ export default function ReviewsPage() {
 
   return (
     <>
-      <h1>Reviews</h1>
-      <p className="sub">Validate simplified text — comment, request changes, revise, approve.</p>
+      <h1>{t("tab_reviews")}</h1>
+      <p className="sub">{t("sub_reviews")}</p>
 
       <div className="actions" style={{ marginBottom: 12 }}>
-        <button className="btn secondary" onClick={() => void load()}>Refresh</button>
+        <button className="btn secondary" onClick={() => void load()}>{t("refresh")}</button>
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{s ? s.replace(/_/g, " ") : "All statuses"}</option>
+            <option key={s} value={s}>{statusLabel(s)}</option>
           ))}
         </select>
       </div>
@@ -81,9 +86,9 @@ export default function ReviewsPage() {
       {error && <div className="error" role="alert">{error}</div>}
 
       {locked ? (
-        <p className="hint">Please sign in (top right) to view reviews.</p>
+        <p className="hint">{t("please_signin")}</p>
       ) : rows.length === 0 ? (
-        <p className="hint">No reviews yet. Simplify something, then &quot;Save to review&quot;.</p>
+        <p className="hint">{t("no_reviews")}</p>
       ) : (
         rows.map((r) => (
           <div key={r.id} className="rv-row" onClick={() => void open(r.id)}>
@@ -104,13 +109,13 @@ export default function ReviewsPage() {
           </div>
 
           <div className="grid2" style={{ marginBottom: 12 }}>
-            <div className="card panel"><h3>Original</h3><div className="body">{selected.source}</div></div>
-            <div className="card panel">
+            <div className="card panel" lang={selected.lang}><h3>{t("original")}</h3><div className="body">{selected.source}</div></div>
+            <div className="card panel" lang={selected.lang}>
               <h3>
-                Current output{" "}
+                {t("current_output")}{" "}
                 {selected.faithful != null && (
                   <span className={`badge-status ${selected.faithful ? "st-approved" : "st-changes_requested"}`}>
-                    {selected.faithful ? "facts preserved" : "facts need review"}
+                    {selected.faithful ? t("facts_preserved") : t("facts_need_review")}
                   </span>
                 )}
               </h3>
@@ -119,17 +124,17 @@ export default function ReviewsPage() {
           </div>
 
           <div className="actions" style={{ marginBottom: 16 }}>
-            <button className="btn secondary" onClick={() => void act("reviews/status", { id: selected.id, status: "approved" })}>Approve</button>
-            <button className="btn secondary" onClick={() => void act("reviews/status", { id: selected.id, status: "changes_requested" })}>Request changes</button>
-            <button className="btn secondary" onClick={() => void act("reviews/status", { id: selected.id, status: "rejected" })}>Reject</button>
-            <span className="hint">{selected.versions.length} version(s)</span>
+            <button className="btn secondary" onClick={() => void act("reviews/status", { id: selected.id, status: "approved" })}>{t("approve")}</button>
+            <button className="btn secondary" onClick={() => void act("reviews/status", { id: selected.id, status: "changes_requested" })}>{t("request_changes")}</button>
+            <button className="btn secondary" onClick={() => void act("reviews/status", { id: selected.id, status: "rejected" })}>{t("reject")}</button>
+            <span className="hint">{t("versions_n", { n: selected.versions.length })}</span>
           </div>
 
           <h3 style={{ margin: "0 0 8px", fontSize: 14, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--muted)" }}>
-            Comments
+            {t("comments")}
           </h3>
           {selected.comments.length === 0 ? (
-            <p className="hint">No comments yet.</p>
+            <p className="hint">{t("no_comments")}</p>
           ) : (
             selected.comments.map((c) => (
               <div key={c.id} className="rv-comment">
@@ -139,8 +144,8 @@ export default function ReviewsPage() {
             ))
           )}
           <div className="actions">
-            <input type="text" placeholder="Your name" value={author} onChange={(e) => setAuthor(e.target.value)} style={{ width: 150 }} />
-            <input type="text" placeholder="Add a comment…" value={body} onChange={(e) => setBody(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
+            <input type="text" placeholder={t("your_name")} value={author} onChange={(e) => setAuthor(e.target.value)} style={{ width: 150 }} />
+            <input type="text" placeholder={t("add_comment_ph")} value={body} onChange={(e) => setBody(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
             <button
               className="btn secondary"
               onClick={() => {
@@ -148,19 +153,19 @@ export default function ReviewsPage() {
                 void act("reviews/comment", { id: selected.id, author, body }).then(() => setBody(""));
               }}
             >
-              Comment
+              {t("comment")}
             </button>
           </div>
 
           <div style={{ marginTop: 16 }}>
-            <label htmlFor="rev">Save a revision</label>
+            <label htmlFor="rev">{t("save_revision")}</label>
             <textarea id="rev" value={revision} onChange={(e) => setRevision(e.target.value)} />
             <div style={{ marginTop: 8 }}>
               <button
                 className="btn secondary"
                 onClick={() => void act("reviews/revision", { id: selected.id, output: revision, note: "edited in reviewer" })}
               >
-                Save revision
+                {t("save_revision_btn")}
               </button>
             </div>
           </div>

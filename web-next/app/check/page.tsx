@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { LANGUAGES, type NormalizedResult, type VerifyResult } from "@/lib/types";
+import { type NormalizedResult, type VerifyResult } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 import { ResultPanel } from "@/components/ResultPanel";
 
 export default function CheckPage() {
+  const { t, lang } = useI18n();
   const [source, setSource] = useState("");
   const [output, setOutput] = useState("");
-  const [lang, setLang] = useState("en");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<NormalizedResult | null>(null);
   const [runId, setRunId] = useState(0);
 
   async function check() {
-    if (!source.trim() || !output.trim()) return setError("Fill in both the original and the rewrite.");
+    if (!source.trim() || !output.trim()) return setError(t("fill_both"));
     setBusy(true);
     setError(null);
     try {
@@ -40,33 +41,25 @@ export default function CheckPage() {
 
   return (
     <>
-      <h1>Check a rewrite</h1>
-      <p className="sub">Paste an original and any plain-language rewrite — get the faithfulness report. No model needed.</p>
+      <h1>{t("tab_check")}</h1>
+      <p className="sub">{t("sub_check")}</p>
 
       <div className="card">
         <div className="grid2">
           <div className="field">
-            <label htmlFor="csrc">Original</label>
+            <label htmlFor="csrc">{t("check_original")}</label>
             <textarea id="csrc" value={source} onChange={(e) => setSource(e.target.value)}
-              placeholder="The original, authoritative text…" />
+              placeholder={t("check_original_ph")} />
           </div>
           <div className="field">
-            <label htmlFor="cout">Rewrite to check</label>
+            <label htmlFor="cout">{t("check_rewrite")}</label>
             <textarea id="cout" value={output} onChange={(e) => setOutput(e.target.value)}
-              placeholder="A plain-language version to verify…" />
+              placeholder={t("check_rewrite_ph")} />
           </div>
         </div>
         <div className="row">
-          <div className="field">
-            <label htmlFor="lang">Language</label>
-            <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)}>
-              {LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>{l.label}</option>
-              ))}
-            </select>
-          </div>
           <button className="btn" onClick={check} disabled={busy}>
-            {busy ? "Checking…" : "Check faithfulness"}
+            {busy ? t("checking") : t("check")}
           </button>
         </div>
       </div>

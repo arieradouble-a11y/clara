@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["web/serve.py", "--port", "8000"],
       "port": 8000
+    },
+    {
+      "name": "clara-next",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "web-next", "run", "dev"],
+      "port": 3000
     }
   ]
 }

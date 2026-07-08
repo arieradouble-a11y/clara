@@ -11,6 +11,8 @@ export interface Faithfulness {
   invented_quantities: string[];
   dropped_dates: string[];
   invented_dates: string[];
+  dropped_identifiers?: string[];
+  invented_identifiers?: string[];
   warnings: string[];
 }
 

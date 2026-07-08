@@ -1,22 +1,26 @@
+"use client";
+
 import type { SemanticReport } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 export function SemanticCard({ report }: { report: SemanticReport }) {
+  const { t } = useI18n();
   const clean = report.available && report.faithful && report.issues.length === 0;
   return (
     <div className={`faith ${clean ? "ok" : "review"}`}>
       {!report.available ? (
         <>
-          <p className="ftitle">AI check unavailable</p>
-          <p>Configure a model provider (set <code>CLARA_PROVIDER</code>) to run the semantic check.</p>
+          <p className="ftitle">{t("ai_unavailable")}</p>
+          <p>{t("ai_unavailable_body")}</p>
         </>
       ) : clean ? (
         <>
-          <p className="ftitle">✓ AI check: faithful</p>
-          <p>No meaning drift detected.</p>
+          <p className="ftitle">{t("ai_faithful")}</p>
+          <p>{t("ai_faithful_body")}</p>
         </>
       ) : (
         <>
-          <p className="ftitle">⚠ AI check: review</p>
+          <p className="ftitle">{t("ai_review")}</p>
           <ul>{report.issues.map((i, k) => <li key={k}><b>{i.type}:</b> {i.detail}</li>)}</ul>
         </>
       )}
