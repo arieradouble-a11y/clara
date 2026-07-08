@@ -28,6 +28,22 @@ def test_keywords_skip_stopwords():
     assert "you" not in kws and "the" not in kws and "must" not in kws
 
 
+def test_keywords_prefer_nouns_over_modifiers():
+    # "large" is a generic modifier (soft stopword) -> demoted below the noun.
+    kws = _keywords("Pay the large fine.")
+    assert kws.index("fine") < kws.index("large")
+    assert kws[0] == "pay"  # the verb keeps its lead over the adjective
+
+
+def test_picks_noun_not_leading_modifier():
+    # Only "fine" has a symbol; selection must reach it past the earlier "large".
+    res = easy_read("A large fine is due.", provider=MockProvider(),
+                    symbols=StubSymbols({"fine": 42, "large": 7}))
+    # Both have symbols here, but the noun outranks the modifier.
+    assert res.lines[0].keyword == "fine"
+    assert res.lines[0].pictogram_id == 42
+
+
 def test_split_lines_from_sentences():
     assert _split_lines("You must pay. Do it by Friday.") == ["You must pay.", "Do it by Friday."]
 

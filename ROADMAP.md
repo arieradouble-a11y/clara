@@ -60,8 +60,10 @@ identifier suffixes remain (lower priority — see below).
   with ARASAAC (CC BY-NC-SA, default) and **Mulberry Symbols** (CC BY-SA,
   commercial-compatible) behind `CLARA_SYMBOLS` / `--symbols`. Mulberry matches a
   bundled label index (no search API); art streams from its CDN.
-- [ ] **Smarter keyword choice** — prefer nouns/verbs over "first content word"
-  (POS tagging where a light tagger exists). **good first issue** per language.
+- [x] **Smarter keyword choice** — pictogram candidates are ranked so likely
+  nouns/verbs beat generic modifiers ("large fine" → pictures the fine), via a
+  per-pack `soft_stopwords` list + `keyword_rank` hook a real POS tagger can
+  override. English list shipped; **good first issue** to add one per language.
 
 ## Phase 4 — People (this is a social project)
 

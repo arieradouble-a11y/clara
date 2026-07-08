@@ -45,6 +45,12 @@ class LanguagePack:
 
     # Easy Read
     stopwords: set = set()
+    # Content words that make poor pictogram anchors — generic modifiers and
+    # quantifiers (adjectives/adverbs) that a picture can't usefully depict. They
+    # are demoted, not dropped, so a noun/verb in the same line wins the picture
+    # but an adjective is still used when it's the only candidate with a symbol.
+    # Empty by default; per-language lists are a good first issue.
+    soft_stopwords: set = set()
 
     # Syllable counting: count vowel GROUPS (consecutive vowels = 1, right for
     # languages with diphthongs like Spanish/French/German) vs each vowel
@@ -84,6 +90,13 @@ class LanguagePack:
                 prev_vowel = is_vowel
             return max(1, count)
         return max(1, sum(1 for ch in word if ch in self.vowels))
+
+    def keyword_rank(self, word: str) -> int:
+        """Pictogram-keyword priority: 0 prefers likely nouns/verbs, 1 demotes
+        generic modifiers. Candidates are tried in this order and the first with a
+        symbol wins. A pack with a light POS tagger can override this to rank by
+        real part of speech instead of the soft-stopword list."""
+        return 1 if word.lower() in self.soft_stopwords else 0
 
     def lemmatize(self, word: str) -> str:
         """Base form of a word, for pictogram lookup. Identity by default; the

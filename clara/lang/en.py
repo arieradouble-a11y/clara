@@ -39,6 +39,16 @@ class EnglishPack(LanguagePack):
     condition = ["if", "unless", "except", "provided that", "only if",
                  "in case", "subject to"]
     stopwords = _STOP
+    # Generic modifiers/quantifiers: kept in the text but demoted as picture
+    # anchors, so "large fine" pictures the fine, not "large".
+    soft_stopwords = {
+        "large", "small", "big", "little", "new", "old", "other", "same", "such",
+        "various", "certain", "general", "specific", "important", "necessary",
+        "available", "applicable", "relevant", "additional", "further", "current",
+        "previous", "final", "total", "full", "main", "only", "also", "very",
+        "more", "most", "less", "least", "many", "much", "several", "few", "own",
+        "due", "able", "each", "every", "both", "either", "another", "own",
+    }
 
     number_units = {
         "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,

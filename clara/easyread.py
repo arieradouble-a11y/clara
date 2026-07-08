@@ -25,9 +25,12 @@ _SENT_SPLIT = re.compile(r"(?<=[.!?…])\s+")
 
 
 def _keywords(line: str, pack=None) -> list[str]:
-    """Content words of a line, in order, as pictogram candidates."""
+    """Content words of a line as pictogram candidates, best first: likely
+    nouns/verbs before generic modifiers (see LanguagePack.keyword_rank), ties
+    broken by original order."""
     pack = pack or get_pack("en")
-    return [w for w in pack.keyword_re.findall(line.lower()) if w not in pack.stopwords]
+    words = [w for w in pack.keyword_re.findall(line.lower()) if w not in pack.stopwords]
+    return [w for _, w in sorted(enumerate(words), key=lambda iw: (pack.keyword_rank(iw[1]), iw[0]))]
 
 
 def _split_lines(text: str) -> list[str]:
