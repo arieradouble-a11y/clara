@@ -90,7 +90,20 @@
   .er-line .noimg { width: 76px; height: 76px; flex: none; display: flex; align-items: center;
     justify-content: center; text-align: center; color: var(--muted); font-size: 12px;
     border: 1px dashed var(--line); border-radius: 10px; }
-  .er-line .er-text { font-size: 20px; line-height: 1.4; }
+  .er-line .er-text { font-size: 20px; line-height: 1.4; flex: 1; }
+  .er-pic { border: 0; background: transparent; padding: 0; flex: none; cursor: pointer; border-radius: 10px; }
+  .er-pic:hover, .er-pic:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .er-change { align-self: center; white-space: nowrap; }
+  .er-picker { border: 1px solid var(--accent); border-radius: 12px; padding: 12px;
+    margin: -4px 0 12px; background: var(--surface); }
+  .er-picker-head { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .er-picker-head input { flex: 1; min-width: 160px; height: 36px; padding: 0 12px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); }
+  .er-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px; max-height: 300px; overflow: auto; }
+  .pk-item { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 4px; cursor: pointer; }
+  .pk-item:hover, .pk-item:focus-visible { border-color: var(--accent); outline: 2px solid var(--accent); }
+  .pk-item img { width: 100%; height: 72px; object-fit: contain; display: block; }
   .rv-row { display: flex; justify-content: space-between; align-items: center; gap: 12px;
     padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
   .rv-row:hover { border-color: var(--accent); }
@@ -160,6 +173,13 @@
         <label for="grade">Grade</label>
         <input type="number" id="grade" min="1" max="12" value="5" style="width:90px" />
       </div>
+      <div class="field hidden" id="symbols-field">
+        <label for="symbols">Symbols</label>
+        <select id="symbols">
+          <option value="arasaac">ARASAAC (CC BY-NC-SA)</option>
+          <option value="mulberry">Mulberry (CC BY-SA)</option>
+        </select>
+      </div>
       <button class="btn" id="run-simplify">Simplify</button>
       <button class="btn secondary" id="ex-simplify" type="button">Load example</button>
       <label id="structure-wrap" style="display:none; align-items:center; gap:6px; margin:0; font-weight:400; color:var(--muted)">
@@ -223,8 +243,7 @@
       </div>
       <p class="er-head">Easy Read</p>
       <div id="er-lines"></div>
-      <p class="hint">Pictograms: <a href="https://arasaac.org">ARASAAC</a> (CC BY-NC-SA) —
-         Government of Aragón, author Sergio Palao. Non-commercial use.</p>
+      <p class="hint" id="er-attribution"></p>
     </div>
 
     <div id="faith"></div>
@@ -263,6 +282,10 @@ let lastResult = null;  // {source, output, lang} for the optional AI semantic c
 let lastExport = null;  // {kind, lang, title, text|lines|blocks, footer} for accessible export
 let lastReview = null;  // payload for "Save to review"
 let ingestedBlocks = null;  // structural blocks from the last import (HTML/DOCX), if any
+let erLines = null;         // current Easy Read lines (mutable — reviewer can swap pictures)
+let erOriginal = "";        // the source text behind the current Easy Read
+let erLang = "en";          // language of the current Easy Read
+let erSymbols = "arasaac";  // symbol set the current Easy Read was built with
 
 // Mirror the server's export._blocks_html: content headings -> h2/h3 (the title
 // owns the sole h1), consecutive list items collapse into one ul/ol.
@@ -312,7 +335,10 @@ function setMode(mode) {
 $("tab-simplify").onclick = () => setMode("simplify");
 $("tab-check").onclick = () => setMode("check");
 $("tab-reviews").onclick = () => setMode("reviews");
-$("level").onchange = (e) => $("grade-field").classList.toggle("hidden", e.target.value !== "grade");
+$("level").onchange = (e) => {
+  $("grade-field").classList.toggle("hidden", e.target.value !== "grade");
+  $("symbols-field").classList.toggle("hidden", e.target.value !== "easy_read");
+};
 // Editing the source by hand invalidates imported structure (blocks no longer match the text).
 $("src").oninput = () => { if (ingestedBlocks) { ingestedBlocks = null; updateStructureUI(); } };
 
@@ -411,26 +437,114 @@ function renderEasyRead(d) {
   $("view-easyread").classList.remove("hidden");
   $("erOrig").textContent = d.original;
   $("metrics").innerHTML = metricsHtml(d.source_readability, d.output_readability);
-  $("er-lines").innerHTML = d.lines.map((ln) => {
-    const pic = ln.image_url
-      ? `<img src="${escapeHtml(ln.image_url)}" alt="${escapeHtml(ln.keyword || "")}" loading="lazy" />`
-      : `<div class="noimg">no picture</div>`;
-    return `<div class="er-line">${pic}<div class="er-text">${escapeHtml(ln.text)}</div></div>`;
-  }).join("");
+  erLines = d.lines.map((l) => ({ ...l }));   // own copy — the reviewer edits pictures
+  erOriginal = d.original;
+  erLang = $("lang").value;
+  erSymbols = d.symbol_source || $("symbols").value || "arasaac";
+  renderErLines();
+  renderAttribution();
   renderFaith(d.faithfulness);
-  lastResult = { source: d.original, output: d.lines.map((l) => l.text).join("\n"), lang: $("lang").value };
-  lastExport = { kind: "easyread", lang: $("lang").value, title: "Easy Read document",
-                 lines: d.lines, footer: EXPORT_FOOTER };
-  lastReview = { title: deriveTitle(d.original), source: d.original,
-                 output: d.lines.map((l) => l.text).join("\n"), lang: $("lang").value,
-                 level: "easy_read", kind: "easyread", meta: { lines: d.lines },
-                 faithful: d.faithfulness.ok };
+  syncEasyRead(d.faithfulness.ok);
   $("embed-wrap").style.display = "flex";
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
   $("results").classList.remove("hidden");
   $("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// Each line's picture is a button; clicking it (or "Change") opens the picker so
+// a reviewer can choose a better symbol — the keyword match is only a suggestion.
+function renderErLines() {
+  $("er-lines").innerHTML = erLines.map((ln, i) => {
+    const pic = ln.image_url
+      ? `<img src="${escapeHtml(ln.image_url)}" alt="${escapeHtml(ln.keyword || "")}" loading="lazy" />`
+      : `<div class="noimg">no picture</div>`;
+    return `<div class="er-line" data-i="${i}">
+      <button class="er-pic" type="button" data-i="${i}" aria-label="Change picture for: ${escapeHtml(ln.text)}">${pic}</button>
+      <div class="er-text">${escapeHtml(ln.text)}</div>
+      <button class="btn secondary er-change" type="button" data-i="${i}">Change picture</button>
+    </div>`;
+  }).join("");
+  $("er-lines").querySelectorAll(".er-pic, .er-change").forEach((b) => {
+    b.onclick = () => openPicker(parseInt(b.dataset.i, 10));
+  });
+}
+
+const ATTRIBUTION = {
+  arasaac: `Pictograms: <a href="https://arasaac.org">ARASAAC</a> (CC BY-NC-SA) — Government of Aragón, author Sergio Palao. Non-commercial use.`,
+  mulberry: `Pictograms: <a href="https://mulberrysymbols.org">Mulberry Symbols</a> (CC BY-SA) — Steve Lee / Straight Street. Commercial use permitted with attribution.`,
+};
+function renderAttribution() {
+  $("er-attribution").innerHTML = ATTRIBUTION[erSymbols] || ATTRIBUTION.arasaac;
+}
+
+function syncEasyRead(faithful) {
+  const flat = erLines.map((l) => l.text).join("\n");
+  lastResult = { source: erOriginal, output: flat, lang: erLang };
+  lastExport = { kind: "easyread", lang: erLang, title: "Easy Read document",
+                 lines: erLines, footer: EXPORT_FOOTER };
+  lastReview = { title: deriveTitle(erOriginal), source: erOriginal, output: flat, lang: erLang,
+                 level: "easy_read", kind: "easyread", meta: { lines: erLines },
+                 faithful: faithful != null ? faithful : (lastReview && lastReview.faithful) };
+}
+
+function closePicker() { const p = $("er-picker"); if (p) p.remove(); }
+
+function openPicker(i) {
+  closePicker();
+  const line = erLines[i];
+  const row = $("er-lines").querySelector(`.er-line[data-i="${i}"]`);
+  if (!row) return;
+  const panel = document.createElement("div");
+  panel.className = "er-picker";
+  panel.id = "er-picker";
+  panel.innerHTML = `
+    <div class="er-picker-head">
+      <input id="pk-q" type="text" value="${escapeHtml(line.keyword || "")}"
+        placeholder="Search the ${escapeHtml(erSymbols)} symbols…" aria-label="Search symbols" />
+      <button class="btn secondary" id="pk-search" type="button">Search</button>
+      <button class="btn secondary" id="pk-remove" type="button">Remove picture</button>
+      <button class="btn secondary" id="pk-close" type="button">Close</button>
+    </div>
+    <div class="er-picker-grid" id="pk-grid"><p class="hint">Searching…</p></div>`;
+  row.insertAdjacentElement("afterend", panel);
+  $("pk-search").onclick = () => runPicker(i);
+  $("pk-q").onkeydown = (e) => { if (e.key === "Enter") runPicker(i); };
+  $("pk-close").onclick = closePicker;
+  $("pk-remove").onclick = () => {
+    setLineSymbol(i, { pictogram_id: null, image_url: null });
+    closePicker();
+  };
+  runPicker(i);
+}
+
+async function runPicker(i) {
+  const q = $("pk-q").value.trim();
+  const grid = $("pk-grid");
+  if (!q) { grid.innerHTML = `<p class="hint">Type a word to search for a symbol.</p>`; return; }
+  grid.innerHTML = `<p class="hint">Searching…</p>`;
+  try {
+    const d = await post("/pictograms/search", { keyword: q, symbols: erSymbols, lang: erLang, limit: 24 });
+    if (!d.results.length) { grid.innerHTML = `<p class="hint">No symbols for “${escapeHtml(q)}”.</p>`; return; }
+    grid.innerHTML = d.results.map((r) =>
+      `<button class="pk-item" type="button" title="${escapeHtml(r.keyword)}"
+        data-id="${escapeHtml(String(r.id))}" data-url="${escapeHtml(r.image_url)}" data-kw="${escapeHtml(r.keyword)}">
+        <img src="${escapeHtml(r.image_url)}" alt="${escapeHtml(r.keyword)}" loading="lazy" /></button>`).join("");
+    grid.querySelectorAll(".pk-item").forEach((b) => {
+      b.onclick = () => {
+        setLineSymbol(i, { pictogram_id: b.dataset.id, image_url: b.dataset.url,
+                           keyword: b.dataset.kw, symbol_source: d.provider });
+        closePicker();
+      };
+    });
+  } catch (e) { showError(e.message); grid.innerHTML = ""; }
+}
+
+function setLineSymbol(i, patch) {
+  erLines[i] = { ...erLines[i], ...patch };
+  renderErLines();
+  syncEasyRead();   // keep export + review in sync with the reviewer's choice
 }
 
 function authToken() { return localStorage.getItem("clara_token") || ""; }
@@ -509,7 +623,7 @@ $("run-simplify").onclick = async () => {
   try {
     const useStructure = ingestedBlocks && ingestedBlocks.length && $("preserve-structure").checked;
     if (level === "easy_read") {
-      renderEasyRead(await post("/easyread", { text, lang: $("lang").value }));
+      renderEasyRead(await post("/easyread", { text, lang: $("lang").value, symbols: $("symbols").value }));
     } else if (useStructure) {
       const body = { blocks: ingestedBlocks, level, lang: $("lang").value };
       if (level === "grade") body.grade = parseInt($("grade").value, 10);

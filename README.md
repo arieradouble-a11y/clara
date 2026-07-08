@@ -163,9 +163,11 @@ Pictograms come from a pluggable **symbol set**. Two ship today, chosen with
   search API, so matching uses a bundled label index; the art is fetched from the
   Mulberry CDN and cached.
 
-Matching is best-effort and the chosen keyword is returned so a human reviewer can
-swap the image. Lookups are cached on disk and fail soft — if the set is
-unreachable the text still works, just without pictures.
+Matching is best-effort, so the picture is a suggestion, not a verdict: in the
+reference UI each Easy Read line's picture is a button — a reviewer clicks it to
+search the symbol set for a better match or remove it, and the choice flows into
+the exported document and the saved review. Lookups are cached on disk and fail
+soft — if the set is unreachable the text still works, just without pictures.
 
 Inflected languages are lemmatized before lookup so more words match: Russian via
 pymorphy3 (`pip install "clara[ru]"`), Spanish/German/French via simplemma
@@ -355,7 +357,8 @@ and validation with target readers.
 - [x] Core: simplify → verify → score, provider-agnostic, CLI, tests
 - [x] Reference UI: source ↔ simplified side by side, drift highlighted, approve
       (zero-dependency dev server; a full Next.js app is a later evolution)
-- [x] Easy Read: pictogram pairing (ARASAAC), one idea per line
+- [x] Easy Read: one idea per line, pluggable symbols (ARASAAC / Mulberry),
+      reviewer-chosen pictograms
 - [x] Accessible output: semantic HTML (always) + tagged PDF/UA via WeasyPrint
 - [x] Ingestion: text / HTML / URL (stdlib) + PDF / DOCX (optional `[ingest]`),
       scanned-PDF OCR (optional `[ocr]`), with headings/lists preserved through export

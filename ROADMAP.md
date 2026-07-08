@@ -52,10 +52,12 @@ identifier suffixes remain (lower priority — see below).
   (anti-self-grading) via `CLARA_CHECK_PROVIDER` / `--check-provider`. Falls back
   to the simplify provider when no second one is configured.
 
-## Phase 3 — Easy Read that experts accept
+## Phase 3 — Easy Read that experts accept — done
 
-- [ ] **Reviewer picks the pictogram.** The keyword is already returned; add UI
-  to click a picture and choose among ARASAAC alternatives (search endpoint).
+- [x] **Reviewer picks the pictogram.** Each Easy Read line's picture is a button;
+  clicking it opens a picker that searches the active symbol set (`/pictograms/
+  search`) so a reviewer can choose a better symbol or remove it. The choice flows
+  into the export and the saved review.
 - [x] **Pluggable symbol sets.** `SymbolProvider` interface in `pictograms.py`
   with ARASAAC (CC BY-NC-SA, default) and **Mulberry Symbols** (CC BY-SA,
   commercial-compatible) behind `CLARA_SYMBOLS` / `--symbols`. Mulberry matches a
