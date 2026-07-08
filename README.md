@@ -188,6 +188,11 @@ clara easyread --url https://example.gov/notice --lang en
 - **URL** — fetched with stdlib `urllib` (no extra dependency).
 - **PDF (pypdf) / DOCX (python-docx)** — `pip install "clara[ingest]"`. Without
   the library the call returns a clear message instead of a broken result.
+- **Scanned PDFs (OCR)** — `pip install "clara[ocr]"` (plus the `tesseract`
+  binary). When a PDF has no usable text layer — an official notice that's really
+  a photo of paper — Clara runs OCR to recover the text. It's `--ocr auto` by
+  default (only fires when the PDF looks scanned), with `--ocr force` and
+  `--ocr off`. Without the extra, `auto` degrades quietly and `force` says so.
 
 Paragraph structure is preserved (blocks separated by blank lines). PDF text is
 extracted best-effort — PDFs are a visual format, so line breaks can be rough.

@@ -99,6 +99,7 @@ class IngestRequest(BaseModel):
     url: str | None = None
     filename: str | None = None
     content_b64: str | None = None
+    ocr: str = "auto"             # scanned-PDF OCR: "auto" | "force" | "off"
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -144,14 +145,14 @@ def ingest_endpoint(req: IngestRequest):
         if req.url:
             res = from_url(req.url)
         elif req.content_b64 is not None:
-            res = ingest_bytes(req.filename or "file.txt", base64.b64decode(req.content_b64))
+            res = ingest_bytes(req.filename or "file.txt", base64.b64decode(req.content_b64), ocr=req.ocr)
         else:
             return JSONResponse({"error": "Provide a url or a file."}, status_code=400)
     except RuntimeError as e:
         return JSONResponse({"error": str(e)}, status_code=501)
     except Exception as e:
         return JSONResponse({"error": f"{type(e).__name__}: {e}"}, status_code=400)
-    return {"text": res.text, "title": res.title, "kind": res.kind}
+    return {"text": res.text, "title": res.title, "kind": res.kind, "ocr_applied": res.ocr_applied}
 
 
 @app.post("/export")

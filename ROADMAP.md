@@ -38,8 +38,10 @@ identifier suffixes remain (lower priority — see below).
 
 ## Phase 2 — Real documents in, real documents out
 
-- [ ] **OCR for scanned PDFs** (`ocrmypdf`/tesseract behind an `[ocr]` extra) —
-  official notices in the wild are very often scans.
+- [x] **OCR for scanned PDFs** (`ocrmypdf`/tesseract behind an `[ocr]` extra) —
+  official notices in the wild are very often scans. `from_pdf` detects a missing
+  text layer (`_needs_ocr`) and OCRs it; `--ocr auto|force|off`. Degrades honestly
+  when the extra isn't installed.
 - [ ] **Structure preservation.** Headings and lists from DOCX/HTML currently
   flatten to paragraphs; carry them through simplification into the exported
   HTML/PDF (h2/h3, ul/ol).

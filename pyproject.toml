@@ -29,6 +29,7 @@ de = ["simplemma>=1.0"]
 fr = ["simplemma>=1.0"]
 pdf = ["weasyprint>=60"]
 ingest = ["trafilatura>=1.6", "pypdf>=4", "python-docx>=1.1"]
+ocr = ["ocrmypdf>=15"]  # also needs the tesseract binary on PATH
 dev = ["pytest>=7"]
 
 [project.scripts]

@@ -128,14 +128,16 @@ class Handler(BaseHTTPRequestHandler):
                         res = from_url(data["url"])
                     elif data.get("content_b64") is not None:
                         raw = base64.b64decode(data["content_b64"])
-                        res = ingest_bytes(data.get("filename", "file.txt"), raw)
+                        res = ingest_bytes(data.get("filename", "file.txt"), raw,
+                                           ocr=data.get("ocr", "auto"))
                     else:
                         self._send_json({"error": "Provide a url or a file."}, 400)
                         return
                 except RuntimeError as e:
                     self._send_json({"error": str(e)}, 501)
                     return
-                self._send_json({"text": res.text, "title": res.title, "kind": res.kind})
+                self._send_json({"text": res.text, "title": res.title, "kind": res.kind,
+                                 "ocr_applied": res.ocr_applied})
             elif self.path == "/auth/register":
                 if not auth_enabled():
                     self._send_json({"error": "Authentication is not enabled."}, 400)

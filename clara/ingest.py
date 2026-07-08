@@ -24,6 +24,7 @@ class IngestResult:
     text: str
     title: str | None = None
     kind: str = "text"
+    ocr_applied: bool = False   # True when text came from OCR (a scanned PDF)
 
 
 def _clean(text: str) -> str:
@@ -124,13 +125,63 @@ def from_url(url: str) -> IngestResult:
 
 # --- PDF ----------------------------------------------------------------------
 
-def from_pdf(source) -> IngestResult:
+# Below this many extractable characters per page, a PDF is almost certainly a
+# scan (an image with no text layer) rather than a born-digital document. Kept
+# deliberately low so a normal sparse page (a cover, a form) doesn't trip OCR.
+_OCR_MIN_CHARS_PER_PAGE = 12
+
+
+def _needs_ocr(pages: list[str]) -> bool:
+    """Heuristic: does this PDF look like a scan with no usable text layer?"""
+    if not pages:
+        return False
+    total = sum(len(p.strip()) for p in pages)
+    return total < _OCR_MIN_CHARS_PER_PAGE * len(pages)
+
+
+def _ocr_pdf(data: bytes) -> str:
+    """Add a text layer to a scanned PDF with OCR, then extract it.
+
+    Uses ocrmypdf (which drives tesseract + ghostscript). This is the heavy path,
+    so it lives behind the `[ocr]` extra and only runs when a PDF looks scanned.
+    """
+    try:
+        import ocrmypdf
+    except Exception as e:
+        raise RuntimeError(
+            'OCR needs the [ocr] extra: pip install "clara[ocr]" and install the '
+            "tesseract binary (e.g. apt install tesseract-ocr, or the Windows build)."
+        ) from e
+    from pypdf import PdfReader
+
+    import os
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        inp = os.path.join(d, "in.pdf")
+        out = os.path.join(d, "out.pdf")
+        with open(inp, "wb") as f:
+            f.write(data)
+        # force_ocr: rasterize and OCR every page. Safe here because we only reach
+        # this on a PDF we've judged to have effectively no text layer.
+        ocrmypdf.ocr(inp, out, force_ocr=True, progress_bar=False, output_type="pdf")
+        reader = PdfReader(out)
+        return "\n\n".join((page.extract_text() or "") for page in reader.pages)
+
+
+def from_pdf(source, *, ocr: str = "auto") -> IngestResult:
+    """Extract text from a PDF, optionally OCR-ing a scanned one.
+
+    ocr: "auto" (default) OCRs only when the PDF looks like a scan and the [ocr]
+    extra is installed, degrading to the sparse text otherwise; "force" always
+    OCRs and raises if the extra is missing; "off" never OCRs.
+    """
     try:
         from pypdf import PdfReader
     except Exception as e:
         raise RuntimeError('PDF ingestion needs pypdf: pip install "clara[ingest]".') from e
-    stream = io.BytesIO(source) if isinstance(source, (bytes, bytearray)) else source
-    reader = PdfReader(stream)
+    data = bytes(source) if isinstance(source, (bytes, bytearray)) else source.read()
+    reader = PdfReader(io.BytesIO(data))
     pages = [(page.extract_text() or "") for page in reader.pages]
     title = None
     try:
@@ -138,7 +189,19 @@ def from_pdf(source) -> IngestResult:
             title = reader.metadata.title
     except Exception:
         title = None
-    return IngestResult(text=_clean("\n\n".join(pages)), title=title, kind="pdf")
+
+    text = _clean("\n\n".join(pages))
+    applied = False
+    if ocr != "off" and (ocr == "force" or _needs_ocr(pages)):
+        try:
+            ocr_text = _clean(_ocr_pdf(data))
+        except RuntimeError:
+            if ocr == "force":
+                raise
+            ocr_text = ""  # auto mode: [ocr] extra absent — keep what little we have
+        if len(ocr_text) > len(text):
+            text, applied = ocr_text, True
+    return IngestResult(text=text, title=title, kind="pdf", ocr_applied=applied)
 
 
 # --- DOCX ---------------------------------------------------------------------
@@ -162,10 +225,10 @@ def from_docx(source) -> IngestResult:
 
 # --- Dispatch -----------------------------------------------------------------
 
-def ingest_bytes(filename: str, data: bytes) -> IngestResult:
+def ingest_bytes(filename: str, data: bytes, *, ocr: str = "auto") -> IngestResult:
     ext = Path(filename or "").suffix.lower()
     if ext == ".pdf":
-        return from_pdf(bytes(data))
+        return from_pdf(bytes(data), ocr=ocr)
     if ext == ".docx":
         return from_docx(bytes(data))
     if ext in (".html", ".htm"):
@@ -173,11 +236,11 @@ def ingest_bytes(filename: str, data: bytes) -> IngestResult:
     return from_text(bytes(data).decode("utf-8", "replace"))
 
 
-def ingest_file(path) -> IngestResult:
+def ingest_file(path, *, ocr: str = "auto") -> IngestResult:
     path = Path(path)
     ext = path.suffix.lower()
     if ext == ".pdf":
-        return from_pdf(path.read_bytes())
+        return from_pdf(path.read_bytes(), ocr=ocr)
     if ext == ".docx":
         return from_docx(path.read_bytes())
     if ext in (".html", ".htm"):

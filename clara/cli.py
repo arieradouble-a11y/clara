@@ -28,12 +28,16 @@ from .serialize import easyread_dict, easyread_line_dict, readability_dict, resu
 
 
 def _read_input(args) -> str:
+    ocr = getattr(args, "ocr", "auto")
     if getattr(args, "url", None):
         return from_url(args.url).text
     if args.text is not None:
         return args.text
     if args.file:
-        return ingest_file(args.file).text  # dispatches: txt / pdf / docx / html
+        res = ingest_file(args.file, ocr=ocr)  # dispatches: txt / pdf / docx / html
+        if res.ocr_applied:
+            print("(OCR applied — text recovered from a scanned PDF)", file=sys.stderr)
+        return res.text
     return sys.stdin.read()
 
 
@@ -199,6 +203,8 @@ def _add_io_args(p) -> None:
     src.add_argument("--text", help="Text to process (default: read stdin)")
     src.add_argument("--file", help="Read text/PDF/DOCX/HTML from this file")
     src.add_argument("--url", help="Fetch and extract the main text from this URL")
+    p.add_argument("--ocr", default="auto", choices=["auto", "force", "off"],
+                   help="OCR a scanned PDF: auto (default, if it looks scanned), force, or off")
 
 
 def main(argv=None) -> int:
@@ -264,7 +270,13 @@ def main(argv=None) -> int:
     ul.set_defaults(func=cmd_user_list)
 
     args = parser.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except RuntimeError as e:
+        # Missing optional dependency (pypdf / python-docx / [ocr]) or a bad
+        # document — report it cleanly instead of dumping a traceback.
+        print(f"error: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
