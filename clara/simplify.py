@@ -52,7 +52,8 @@ _STYLES = {
 }
 
 
-def build_system(level: str = "plain", grade: int | None = None, lang: str = "en") -> str:
+def build_system(level: str = "plain", grade: int | None = None, lang: str = "en",
+                 extra: str = "") -> str:
     if level == "grade":
         g = grade or 5
         style = (
@@ -62,7 +63,11 @@ def build_system(level: str = "plain", grade: int | None = None, lang: str = "en
     else:
         style = _STYLES.get(level, _STYLES["plain"])
     note = get_pack(lang).simplify_note
-    return _HARD_RULES + style + (f"\n{note}\n" if note else "")
+    out = _HARD_RULES + style + (f"\n{note}\n" if note else "")
+    if extra:
+        # Per-reader constraints (an accessibility profile) on top of the style.
+        out += f"\nREADER PROFILE — additional constraints:\n{extra}\n"
+    return out
 
 
 def _split_paragraph(paragraph: str, max_chars: int) -> list[str]:
@@ -111,9 +116,10 @@ def simplify(
     grade: int | None = None,
     lang: str = "en",
     max_chars: int = _CHUNK_CHARS,
+    extra: str = "",
 ) -> str:
     provider = provider or get_provider()
-    system = build_system(level, grade, lang)
+    system = build_system(level, grade, lang, extra)
     parts = chunk_text(text, max_chars)
     if len(parts) <= 1:
         return provider.complete(system, text).strip()

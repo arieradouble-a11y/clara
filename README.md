@@ -164,6 +164,29 @@ CLARA_PROVIDER=anthropic ANTHROPIC_API_KEY=sk-... uvicorn api.main:app
   add your own auth in front before exposing it publicly. (FastAPI app only;
   the zero-dependency `web/serve.py` doesn't serve `/v1`.)
 
+### Accessibility profile
+
+Operating systems have accessibility settings that applications respect; the
+LLM ecosystem has nothing — every chat starts from zero. Clara defines a small
+**portable profile** ([spec, draft v0.1](docs/accessibility-profile.md) +
+[JSON Schema](docs/accessibility-profile.schema.json)): one JSON file where a
+person states their needs once — reading level, sentence length, no tables, no
+emoji, fact-checking — and any client can apply it.
+
+```bash
+clara profile example > my-profile.json     # starter profile; edit it
+clara profile render --file my-profile.json # instructions to paste into ANY chat client
+
+# Or the verified path: the proxy applies it to every answer
+CLARA_PROFILE=my-profile.json uvicorn api.main:app
+```
+
+The proxy enforces the reading fields through the verified simplify pass (not
+just a polite request to the model), injects the format/language wishes
+upstream, reports `profile_applied` in every response, and **refuses to start a
+request if the profile file is broken** — accessibility settings must never
+fail silently. A profile can also travel per request: `"clara": {"profile": {…}}`.
+
 ### With Docker
 
 ```bash

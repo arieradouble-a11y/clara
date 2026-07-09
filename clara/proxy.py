@@ -23,7 +23,9 @@ Configuration (env), overridable per request:
 
 Per request: the model name picks the level (`clara-plain`, `clara-easy-read`,
 `clara-grade-7`; any other name keeps the env default), and an optional `clara`
-object in the request body overrides level/grade/lang/annotate.
+object in the request body overrides level/grade/lang/annotate — or carries a
+full accessibility profile (`clara.profile`, see docs/accessibility-profile.md).
+A standing profile file can be set once with CLARA_PROFILE=/path/to/profile.json.
 
 Honest costs: two model calls per turn (answer + simplify) — the faithfulness
 check itself is deterministic and free. True token streaming is impossible
@@ -43,6 +45,7 @@ from dataclasses import dataclass
 
 from .llm import get_provider
 from .llm.base import LLMProvider
+from .profile import load_env_profile, proxy_options, reading_notes, render_instructions, validate_profile
 from .serialize import faithfulness_dict
 from .simplify import simplify
 from .verify import FaithfulnessReport, verify
@@ -85,6 +88,16 @@ class ProxyResult:
     grade: int | None
     lang: str
     faithfulness: FaithfulnessReport
+    profile_applied: bool = False   # an accessibility profile shaped this answer
+
+
+def _inject_system(messages: list[dict], text: str) -> list[dict]:
+    """Add profile instructions as a system message — after the client's own
+    system setup (its task still stands) but before the conversation."""
+    i = 0
+    while i < len(messages) and messages[i].get("role") == "system":
+        i += 1
+    return [*messages[:i], {"role": "system", "content": text}, *messages[i:]]
 
 
 def proxy_chat(
@@ -99,23 +112,49 @@ def proxy_chat(
 ) -> ProxyResult:
     """Answer a conversation upstream, then simplify + verify the answer.
 
-    Resolution order for level/grade/lang/annotate: explicit `options` (the
-    request's `clara` object) > the model name > CLARA_PROXY_* env > defaults.
+    Resolution order for level/grade/lang/annotate: explicit flat `options`
+    (the request's `clara` object) > the model name > an inline `clara.profile`
+    > the CLARA_PROFILE env profile > CLARA_PROXY_* env > defaults. The model
+    name outranks the profile because picking a model is the user's *active*
+    choice in the client; the profile is their standing preference.
     """
-    options = options or {}
+    options = dict(options or {})
+    inline = options.pop("profile", None)
+    if inline is not None:
+        errors = validate_profile(inline)
+        if errors:
+            raise ValueError("Invalid accessibility profile: " + "; ".join(errors))
+        profile = inline
+    else:
+        profile = load_env_profile()
+    prof = proxy_options(profile) if profile else {}
+
     m_level, m_grade = parse_model(model)
-    level = options.get("level") or m_level or os.environ.get("CLARA_PROXY_LEVEL", "plain")
-    grade = int(options.get("grade") or m_grade or os.environ.get("CLARA_PROXY_GRADE", "5"))
-    lang = options.get("lang") or os.environ.get("CLARA_PROXY_LANG", "en")
+    level = options.get("level") or m_level or prof.get("level") or os.environ.get("CLARA_PROXY_LEVEL", "plain")
+    grade = int(options.get("grade") or m_grade or prof.get("grade") or os.environ.get("CLARA_PROXY_GRADE", "5"))
+    lang = options.get("lang") or prof.get("lang") or os.environ.get("CLARA_PROXY_LANG", "en")
     annotate = options.get("annotate")
+    if annotate is None:
+        annotate = prof.get("annotate")
     if annotate is None:
         annotate = os.environ.get("CLARA_PROXY_ANNOTATE", "1").strip().lower() not in ("0", "false", "off", "no")
 
     provider = provider or get_provider()
     simplifier = simplifier or provider
 
+    extra = ""
+    if profile:
+        # Split of duties: language + formatting wishes go to the upstream model
+        # (the answer's shape); reading-detail constraints go into the verified
+        # simplify pass (the text the person actually reads). Reading *level*
+        # is already enforced by the pipeline, so it is not injected upstream.
+        instructions = render_instructions(profile, include_reading=False)
+        if instructions:
+            messages = _inject_system(messages, instructions)
+        extra = reading_notes(profile)
+
     answer = provider.chat(messages, max_tokens=max_tokens, temperature=temperature)
-    simplified = simplify(answer, level=level, provider=simplifier, grade=grade, lang=lang)
+    simplified = simplify(answer, level=level, provider=simplifier, grade=grade, lang=lang, extra=extra)
     fr = verify(answer, simplified, lang)
 
     content = simplified
@@ -128,6 +167,7 @@ def proxy_chat(
         grade=grade if level == "grade" else None,
         lang=lang,
         faithfulness=fr,
+        profile_applied=profile is not None,
     )
 
 
@@ -156,6 +196,7 @@ def completion_response(res: ProxyResult, model: str = "") -> dict:
             "level": res.level,
             "grade": res.grade,
             "lang": res.lang,
+            "profile_applied": res.profile_applied,
             "faithful": res.faithfulness.ok,
             "faithfulness": faithfulness_dict(res.faithfulness),
             "original_content": res.original,

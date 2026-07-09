@@ -362,6 +362,10 @@ def openai_chat_completions(payload: dict):
         )
     except (TypeError, ValueError) as e:
         return JSONResponse({"error": {"message": str(e), "type": "invalid_request_error"}}, status_code=400)
+    except RuntimeError as e:
+        # e.g. a broken CLARA_PROFILE file — fail loudly, never silently drop
+        # someone's accessibility settings.
+        return JSONResponse({"error": {"message": str(e), "type": "server_error"}}, status_code=500)
     except Exception as e:
         return JSONResponse({"error": {"message": f"Upstream provider failed: {e}",
                                        "type": "upstream_error"}}, status_code=502)

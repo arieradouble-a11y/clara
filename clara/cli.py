@@ -198,6 +198,47 @@ def cmd_review_status(args) -> int:
     return 0
 
 
+def cmd_profile_example(args) -> int:
+    from .profile import EXAMPLE_PROFILE
+
+    print(json.dumps(EXAMPLE_PROFILE, ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_profile_check(args) -> int:
+    from .profile import validate_profile
+
+    try:
+        with open(args.file, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    errors = validate_profile(data)
+    if errors:
+        for problem in errors:
+            print(f"error: {problem}", file=sys.stderr)
+        return 1
+    print("Profile is valid.")
+    return 0
+
+
+def cmd_profile_render(args) -> int:
+    from .profile import load_profile, render_instructions
+
+    try:
+        prof = load_profile(args.file)
+    except (OSError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    text = render_instructions(prof)
+    if not text:
+        print("(empty profile — nothing to render)", file=sys.stderr)
+        return 1
+    print(text)
+    return 0
+
+
 def cmd_user_add(args) -> int:
     import getpass
 
@@ -285,6 +326,18 @@ def main(argv=None) -> int:
     rt.add_argument("id", type=int)
     rt.add_argument("status", help="draft|in_review|approved|rejected|changes_requested")
     rt.set_defaults(func=cmd_review_status)
+
+    pf = sub.add_parser("profile", help="Accessibility profile tools (docs/accessibility-profile.md)")
+    pfsub = pf.add_subparsers(dest="profile_cmd", required=True)
+    pe = pfsub.add_parser("example", help="Print a starter profile (redirect to a file and edit)")
+    pe.set_defaults(func=cmd_profile_example)
+    pc = pfsub.add_parser("check", help="Validate a profile file")
+    pc.add_argument("--file", required=True, help="Path to the profile JSON")
+    pc.set_defaults(func=cmd_profile_check)
+    pr = pfsub.add_parser("render",
+                          help="Render a profile as model instructions — paste into any chat client")
+    pr.add_argument("--file", required=True, help="Path to the profile JSON")
+    pr.set_defaults(func=cmd_profile_render)
 
     u = sub.add_parser("user", help="Manage review users (for CLARA_AUTH)")
     usub = u.add_subparsers(dest="user_cmd", required=True)

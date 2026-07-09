@@ -10,6 +10,15 @@ import package and CLI command stay `clara`.
 ## [Unreleased]
 
 ### Added
+- **Accessibility profile (draft spec v0.1):** a small portable JSON document
+  where a person states their needs for AI answers once — reading level,
+  sentence length, formatting, verification. Spec + JSON Schema in `docs/`;
+  dependency-free reference implementation in `clara/profile.py`; CLI
+  (`clara profile example|check|render` — render produces instructions to paste
+  into any chat client); clara-proxy applies a standing profile
+  (`CLARA_PROFILE=file.json`) or a per-request one (`clara.profile`), enforces
+  the reading fields via the verified simplify pass, reports `profile_applied`,
+  and fails loudly on a broken profile file.
 - **clara-proxy — LLM accessibility layer:** an OpenAI-compatible endpoint
   (`POST /v1/chat/completions`, `GET /v1/models`) that sits between any chat
   client and any provider. Answers are simplified to a chosen reading level

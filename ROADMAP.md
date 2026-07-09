@@ -133,10 +133,15 @@ disabilities. Same principles apply: assistive, verified, honest.
   `CLARA_PROXY_*` env; a `clara` extension block carries the report and the
   unmodified original; lost facts append a localized plain-language warning;
   streaming is emulated. Providers grew a native multi-turn `chat()`.
-- [ ] **Accessibility profile.** A small portable JSON spec (reading level,
-  sentence length, pictograms, verification) that any chat client could inject —
-  the LLM equivalent of OS-level accessibility settings, which today don't
-  exist anywhere. Clara already implements half the fields.
+- [x] **Accessibility profile.** A small portable JSON spec — the LLM equivalent
+  of OS-level accessibility settings, which today don't exist anywhere. Spec +
+  JSON Schema in [docs/accessibility-profile.md](docs/accessibility-profile.md);
+  reference implementation in `clara/profile.py` (dependency-free on purpose).
+  Two modes: **A** — `clara profile render` produces instructions to paste into
+  any chat client (a request); **B** — clara-proxy enforces the reading fields
+  through the verified simplify pass, injects format/language wishes upstream,
+  reports `profile_applied`, and fails loudly on a broken `CLARA_PROFILE` file.
+  *Next: circulate the draft for feedback from AT users and partner orgs.*
 - [ ] **Pictogram prompt builder.** Input, not just output: compose a request by
   tapping AAC-style symbol boards instead of typing — reuses the symbol
   providers and `/pictograms/search`.

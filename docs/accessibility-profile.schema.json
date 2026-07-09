@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arieradouble-a11y/clara/blob/main/docs/accessibility-profile.schema.json",
+  "title": "LLM Accessibility Profile",
+  "description": "A portable statement of a person's accessibility needs for AI answers. Draft v0.1 — see accessibility-profile.md. Implementations must ignore unknown fields; an absent field means no preference, never off.",
+  "type": "object",
+  "required": ["a11y_profile"],
+  "additionalProperties": true,
+  "properties": {
+    "a11y_profile": {
+      "type": "string",
+      "description": "Spec version, e.g. \"0.1\""
+    },
+    "language": {
+      "type": "string",
+      "description": "Language the reader wants answers in, e.g. \"ru\""
+    },
+    "reading": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "level": { "enum": ["plain", "easy_read", "grade"] },
+        "grade": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "max_sentence_words": { "type": "integer", "minimum": 3 },
+        "one_idea_per_line": { "type": "boolean" },
+        "define_hard_words": { "type": "boolean" }
+      }
+    },
+    "format": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "prefer_lists": { "type": "boolean" },
+        "avoid_tables": { "type": "boolean" },
+        "avoid_emoji": { "type": "boolean" },
+        "short_answers": { "type": "boolean" }
+      }
+    },
+    "verify": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "facts": { "type": "boolean" },
+        "warn_inline": { "type": "boolean" }
+      }
+    },
+    "symbols": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "set": { "type": "string" }
+      }
+    }
+  }
+}
