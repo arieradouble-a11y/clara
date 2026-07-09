@@ -210,11 +210,12 @@ Set a real model with env, e.g. `CLARA_PROVIDER=anthropic ANTHROPIC_API_KEY=…
 docker compose up`. (The default image leaves out the `pdf`/`ocr` extras, which
 need system libraries.)
 
-**Public demo:** [`render.yaml`](render.yaml) is a one-click Render Blueprint
-that deploys the single-process server with the offline `mock` provider — no key,
-no cost. The **Check a rewrite** tab runs the whole faithfulness checker offline,
-and the **Ask** symbol board works too, so it's a real live demo even without a
-model. Click the *Deploy to Render* badge at the top of this README.
+**Public demo: <https://clara-demo.onrender.com>** — deployed from
+[`render.yaml`](render.yaml) with the offline `mock` provider (no key, no cost).
+The **Check a rewrite** tab runs the whole faithfulness checker for real, and the
+**Ask** symbol board works too. Free tier: the service sleeps after ~15 idle
+minutes, so the first request may take up to a minute. To deploy your own, click
+the *Deploy to Render* badge at the top of this README.
 
 ---
 
