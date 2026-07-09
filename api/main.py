@@ -17,7 +17,7 @@ import base64
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from clara.auth import (
@@ -35,6 +35,7 @@ from clara.ingest import from_url, ingest_bytes
 from clara.llm import get_check_provider, get_provider
 from clara.pictograms import get_symbol_provider
 from clara.pipeline import simplify_structured, simplify_text
+from clara.proxy import completion_response, models_response, proxy_chat, stream_events
 from clara.readability import analyze
 from clara.review import ReviewStore
 from clara.semantic import semantic_check
@@ -336,6 +337,42 @@ def reviews_revision(payload: dict, user: dict | None = Depends(current_user)):
     r = _reviews.add_revision(payload.get("id"), payload.get("output", ""),
                               note=payload.get("note"), faithful=payload.get("faithful"))
     return r or JSONResponse({"error": "not found"}, status_code=404)
+
+
+# --- OpenAI-compatible accessibility proxy (clara-proxy) -----------------------
+# Any OpenAI-compatible chat client can point its base URL at /v1: the upstream
+# answer is simplified to the chosen reading level and fact-checked before the
+# person sees it. See clara/proxy.py for the design and the honest costs.
+
+@app.post("/v1/chat/completions")
+def openai_chat_completions(payload: dict):
+    messages = payload.get("messages")
+    if not isinstance(messages, list) or not messages:
+        return JSONResponse({"error": {"message": "'messages' must be a non-empty list.",
+                                       "type": "invalid_request_error"}}, status_code=400)
+    mt, temp = payload.get("max_tokens"), payload.get("temperature")
+    model = str(payload.get("model") or "")
+    try:
+        res = proxy_chat(
+            messages,
+            model=model,
+            options=payload.get("clara") or {},
+            max_tokens=2000 if mt is None else int(mt),
+            temperature=0.2 if temp is None else float(temp),
+        )
+    except (TypeError, ValueError) as e:
+        return JSONResponse({"error": {"message": str(e), "type": "invalid_request_error"}}, status_code=400)
+    except Exception as e:
+        return JSONResponse({"error": {"message": f"Upstream provider failed: {e}",
+                                       "type": "upstream_error"}}, status_code=502)
+    if payload.get("stream"):
+        return StreamingResponse(stream_events(res, model), media_type="text/event-stream")
+    return completion_response(res, model)
+
+
+@app.get("/v1/models")
+def openai_models() -> dict:
+    return models_response()
 
 
 @app.get("/i18n")

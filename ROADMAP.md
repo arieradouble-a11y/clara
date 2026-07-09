@@ -118,6 +118,32 @@ are all **done**.
   *Remaining: click deploy, and add rate-limiting if switching to a real
   provider.*
 
+## Phase 6 — LLM accessibility layer
+
+Clara's pipeline generalises beyond documents. LLMs are rapidly becoming how
+people get information — and access to *them* is uneven: answers are walls of
+text, prompting is a cognitive skill, voice modes exclude people with speech
+disabilities. Same principles apply: assistive, verified, honest.
+
+- [x] **clara-proxy.** An OpenAI-compatible endpoint (`POST /v1/chat/completions`,
+  `GET /v1/models`) between any chat client and any provider: the upstream
+  answer is simplified to the chosen reading level and checked by the
+  deterministic faithfulness layer before the person sees it. Level via the
+  model name (`clara-plain`, `clara-easy-read`, `clara-grade-7`) or
+  `CLARA_PROXY_*` env; a `clara` extension block carries the report and the
+  unmodified original; lost facts append a localized plain-language warning;
+  streaming is emulated. Providers grew a native multi-turn `chat()`.
+- [ ] **Accessibility profile.** A small portable JSON spec (reading level,
+  sentence length, pictograms, verification) that any chat client could inject —
+  the LLM equivalent of OS-level accessibility settings, which today don't
+  exist anywhere. Clara already implements half the fields.
+- [ ] **Pictogram prompt builder.** Input, not just output: compose a request by
+  tapping AAC-style symbol boards instead of typing — reuses the symbol
+  providers and `/pictograms/search`.
+- [ ] **Barriers research.** With partner disability organisations, document how
+  people with different disabilities actually experience LLM chat interfaces;
+  publish the findings. Feeds the profile spec and the proxy defaults.
+
 ## Non-goals (for now)
 
 - Replacing human review — the whole design assumes a person signs off.

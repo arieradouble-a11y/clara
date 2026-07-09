@@ -35,8 +35,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install (core + language extras)
-        run: pip install -e ".[dev,ru,es,de,fr]"
+      - name: Install (core + api + language extras)
+        run: pip install -e ".[dev,api,ru,es,de,fr]"
       - name: Test
         run: python -m pytest -q
 

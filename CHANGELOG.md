@@ -10,6 +10,14 @@ import package and CLI command stay `clara`.
 ## [Unreleased]
 
 ### Added
+- **clara-proxy — LLM accessibility layer:** an OpenAI-compatible endpoint
+  (`POST /v1/chat/completions`, `GET /v1/models`) that sits between any chat
+  client and any provider. Answers are simplified to a chosen reading level
+  (selected via the model name: `clara-plain` / `clara-easy-read` /
+  `clara-grade-N`, or `CLARA_PROXY_*` env) and fact-checked deterministically
+  before the person sees them; lost facts append a localized plain-language
+  warning, and a `clara` extension block carries the report plus the original
+  answer. Streaming is emulated. Providers gained a native multi-turn `chat()`.
 - **Ingestion:** OCR for scanned PDFs behind the `[ocr]` extra (ocrmypdf /
   tesseract), with `--ocr auto|force|off` and honest degradation when the extra
   is absent.

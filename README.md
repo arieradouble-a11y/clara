@@ -137,6 +137,33 @@ uvicorn api.main:app --reload
 # POST /verify      {"source": "...", "output": "..."}   (no LLM, offline)
 ```
 
+### As an LLM accessibility proxy (clara-proxy)
+
+Clara can sit between a person and **any LLM**: the FastAPI app exposes an
+OpenAI-compatible endpoint, so any chat client that lets you set a base URL can
+point at Clara instead of the vendor. Every answer is simplified to the chosen
+reading level and passed through the deterministic faithfulness check **before
+the person sees it** — a simplification that drops a number or a date appends a
+plain-language warning (in the reader's language) instead of failing silently.
+
+```bash
+CLARA_PROVIDER=anthropic ANTHROPIC_API_KEY=sk-... uvicorn api.main:app
+# point your chat client's OpenAI-compatible base URL at http://localhost:8000/v1
+```
+
+- **Reading level = model name**: pick `clara-plain`, `clara-easy-read`, or
+  `clara-grade-7` in the client's model picker — no custom UI needed. Defaults
+  come from `CLARA_PROXY_LEVEL` / `CLARA_PROXY_GRADE` / `CLARA_PROXY_LANG`.
+- The response is standard OpenAI format plus a `clara` extension block
+  (faithfulness report + the unmodified original answer) that capable clients
+  can surface; others ignore it.
+- Honest costs: **two model calls per turn** (answer + simplify); the
+  faithfulness check itself is deterministic and free. `stream: true` is
+  emulated — the pipeline needs the whole answer before it can verify it.
+- The proxy ignores incoming `Authorization` and uses its own upstream keys —
+  add your own auth in front before exposing it publicly. (FastAPI app only;
+  the zero-dependency `web/serve.py` doesn't serve `/v1`.)
+
 ### With Docker
 
 ```bash

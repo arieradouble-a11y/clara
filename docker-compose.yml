@@ -16,6 +16,10 @@ services:
       - CLARA_PROVIDER=${CLARA_PROVIDER:-mock}
       - CLARA_CHECK_PROVIDER=${CLARA_CHECK_PROVIDER:-}
       - CLARA_SYMBOLS=${CLARA_SYMBOLS:-arasaac}
+      # clara-proxy (/v1/chat/completions) defaults
+      - CLARA_PROXY_LEVEL=${CLARA_PROXY_LEVEL:-plain}
+      - CLARA_PROXY_GRADE=${CLARA_PROXY_GRADE:-5}
+      - CLARA_PROXY_LANG=${CLARA_PROXY_LANG:-en}
       # Pass through provider keys if set in the host environment.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
