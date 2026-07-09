@@ -23,6 +23,20 @@ from .verify import FaithfulnessReport, verify
 # Sentence terminators are effectively universal across the languages we target.
 _SENT_SPLIT = re.compile(r"(?<=[.!?…])\s+")
 
+# For ask(): the question may come from an AAC symbol board, so it can be
+# telegraphic base forms ("я хотеть понять письмо"). Interpreting that kindly is
+# the model's job — the board deliberately does no grammar of its own.
+_ASK_SYSTEM = (
+    "You are answering a person who communicates using a symbol board. Their "
+    "message may be short or telegraphic — read it kindly and work out what they "
+    "want to know.\n"
+    "- Answer in the same language as their message.\n"
+    "- Be brief: a few short sentences.\n"
+    "- Use the simplest everyday words.\n"
+    "- If you are not sure what they mean, say what you understood and ask one "
+    "short question back.\n"
+)
+
 
 def _keywords(line: str, pack=None) -> list[str]:
     """Content words of a line as pictogram candidates, best first: likely
@@ -99,3 +113,23 @@ def easy_read(
         faithfulness=verify(text, joined, lang),
         symbol_source=sym.name,
     )
+
+
+def ask(
+    question: str,
+    provider: LLMProvider | None = None,
+    lang: str = "en",
+    symbols: SymbolProvider | str | None = None,
+    with_pictograms: bool = True,
+) -> EasyReadResult:
+    """Answer a (possibly telegraphic) question in Easy Read with pictograms.
+
+    Two existing pieces composed: the model answers under the AAC-aware system
+    prompt, then the answer goes through easy_read() — so the result's
+    `original` is the model's full answer, the lines are its Easy Read form with
+    pictures, and the faithfulness report checks nothing was lost in between.
+    """
+    provider = provider or get_provider()
+    answer = provider.complete(_ASK_SYSTEM, question)
+    return easy_read(answer, provider=provider, lang=lang,
+                     with_pictograms=with_pictograms, symbols=symbols)

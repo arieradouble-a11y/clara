@@ -104,6 +104,23 @@
   .pk-item { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 4px; cursor: pointer; }
   .pk-item:hover, .pk-item:focus-visible { border-color: var(--accent); outline: 2px solid var(--accent); }
   .pk-item img { width: 100%; height: 72px; object-fit: contain; display: block; }
+  .board-cats { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 10px; }
+  .board-cats button { border: 1px solid var(--line); background: var(--bg); color: var(--text);
+    font: inherit; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  .board-cats button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink);
+    border-color: var(--accent); }
+  .board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .tile { border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+    cursor: pointer; padding: 8px 4px; display: flex; flex-direction: column; align-items: center;
+    gap: 6px; font: inherit; color: var(--text); }
+  .tile:hover { border-color: var(--accent); }
+  .tile img { width: 56px; height: 56px; object-fit: contain; background: #fff; border-radius: 8px; }
+  .tile .noimg-sm { width: 56px; height: 56px; border: 1px dashed var(--line); border-radius: 8px; }
+  .tile span { font-size: 15px; line-height: 1.2; text-align: center; }
+  .ask-q { font-size: 18px; color: var(--muted); margin: 0 0 10px; }
+  .speak { border: 1px solid var(--line); background: transparent; border-radius: 8px;
+    cursor: pointer; font: inherit; padding: 4px 10px; flex: none; }
+  .speak:hover { border-color: var(--accent); }
   .rv-row { display: flex; justify-content: space-between; align-items: center; gap: 12px;
     padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
   .rv-row:hover { border-color: var(--accent); }
@@ -134,6 +151,7 @@
     <div class="tabs" role="tablist" aria-label="Mode" style="margin-bottom:0">
       <button role="tab" id="tab-simplify" aria-selected="true" aria-controls="panel-simplify" data-i18n="tab_simplify">Simplify</button>
       <button role="tab" id="tab-check" aria-selected="false" aria-controls="panel-check" data-i18n="tab_check">Check a rewrite</button>
+      <button role="tab" id="tab-ask" aria-selected="false" aria-controls="panel-ask" data-i18n="tab_ask">Ask</button>
       <button role="tab" id="tab-reviews" aria-selected="false" aria-controls="panel-reviews" data-i18n="tab_reviews">Reviews</button>
     </div>
     <label style="display:flex; align-items:center; gap:8px; margin:0; font-weight:400; color:var(--muted)">
@@ -208,6 +226,22 @@
       <button class="btn secondary" id="ex-check" type="button" data-i18n="load_example">Load example</button>
     </div>
     <p class="hint" data-i18n="check_hint">No model needed — this compares the two texts and works fully offline.</p>
+  </section>
+
+  <!-- Ask mode: compose a question by tapping symbols (AAC-style), answer comes
+       back as Easy Read lines with pictograms. -->
+  <section class="card hidden" id="panel-ask" role="tabpanel" aria-labelledby="tab-ask">
+    <p class="hint" style="margin-top:0" data-i18n="ask_hint">Tap pictures to build your question, or type it. Then press Ask.</p>
+    <label for="ask-text" data-i18n="ask_input_label">Your question</label>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <input type="text" id="ask-text"
+        style="flex:1; min-width:220px; height:44px; padding:0 14px; font-size:20px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text)" />
+      <button class="btn" id="ask-send" data-i18n="ask_send">Ask</button>
+      <button class="btn secondary" id="ask-clear" data-i18n="ask_clear">Clear</button>
+    </div>
+    <div id="board-cats" class="board-cats"></div>
+    <div id="board-grid" class="board-grid"></div>
+    <div id="ask-result" class="hidden" style="margin-top:20px" aria-live="polite"></div>
   </section>
 
   <!-- Reviews mode -->
@@ -349,7 +383,7 @@ const deriveTitle = (src) => {
 // Respect prefers-reduced-motion for programmatic scrolling (WCAG 2.3.3).
 const SCROLL = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 
-const MODES = ["simplify", "check", "reviews"];
+const MODES = ["simplify", "check", "ask", "reviews"];
 function setMode(mode) {
   MODES.forEach((m) => {
     const selected = m === mode;
@@ -359,6 +393,7 @@ function setMode(mode) {
     $("panel-" + m).classList.toggle("hidden", !selected);
   });
   if (mode === "reviews") loadReviews();
+  if (mode === "ask") loadBoard();
 }
 MODES.forEach((m) => { $("tab-" + m).onclick = () => setMode(m); });
 
@@ -803,6 +838,88 @@ $("ingest-file").onchange = async (e) => {
   finally { e.target.value = ""; }
 };
 
+// --- Ask: AAC-style symbol board -> question -> Easy Read answer -------------
+let boardCache = {};       // lang -> board payload
+let boardActiveCat = null;
+
+async function loadBoard() {
+  const lang = $("lang").value;
+  if (!boardCache[lang]) {
+    $("board-grid").innerHTML = `<p class="hint">${t("searching")}</p>`;
+    try {
+      const r = await fetch(`/board?lang=${encodeURIComponent(lang)}`);
+      boardCache[lang] = await r.json();
+    } catch (e) { showError(e.message); return; }
+  }
+  renderBoard(boardCache[lang]);
+}
+
+function renderBoard(b) {
+  const cats = b.categories || [];
+  if (!cats.length) return;
+  if (!cats.some((c) => c.id === boardActiveCat)) boardActiveCat = cats[0].id;
+  $("board-cats").innerHTML = cats.map((c) =>
+    `<button type="button" data-cat="${escapeHtml(c.id)}" aria-pressed="${String(c.id === boardActiveCat)}">${escapeHtml(c.label)}</button>`).join("");
+  $("board-cats").querySelectorAll("button").forEach((btn) => {
+    btn.onclick = () => { boardActiveCat = btn.dataset.cat; renderBoard(b); };
+  });
+  const cat = cats.find((c) => c.id === boardActiveCat);
+  $("board-grid").innerHTML = cat.words.map((w) => {
+    const img = w.image_url
+      ? `<img src="${escapeHtml(w.image_url)}" alt="" loading="lazy" />`
+      : `<div class="noimg-sm"></div>`;
+    return `<button type="button" class="tile" data-word="${escapeHtml(w.label)}">${img}<span>${escapeHtml(w.label)}</span></button>`;
+  }).join("");
+  $("board-grid").querySelectorAll(".tile").forEach((tile) => {
+    tile.onclick = () => {   // tap appends the word; the input stays editable
+      const cur = $("ask-text").value;
+      $("ask-text").value = (cur ? cur.trimEnd() + " " : "") + tile.dataset.word;
+    };
+  });
+}
+
+$("ask-clear").onclick = () => { $("ask-text").value = ""; $("ask-text").focus(); };
+
+$("ask-send").onclick = async () => {
+  const text = $("ask-text").value.trim();
+  if (!text) return showError(t("ask_empty"));
+  clearError();
+  $("ask-send").disabled = true;
+  $("ask-result").classList.remove("hidden");
+  $("ask-result").innerHTML = `<p class="hint">${t("ask_thinking")}</p>`;
+  try {
+    renderAsk(text, await post("/ask", { text, lang: $("lang").value }));
+  } catch (e) {
+    showError(e.message);
+    $("ask-result").innerHTML = "";
+  } finally {
+    $("ask-send").disabled = false;
+  }
+};
+
+function renderAsk(question, d) {
+  const lang = $("lang").value;
+  const lines = (d.lines || []).map((ln) => {
+    const pic = ln.image_url
+      ? `<img src="${escapeHtml(ln.image_url)}" alt="${escapeHtml(ln.keyword || "")}" loading="lazy" />`
+      : `<div class="noimg">${t("no_picture")}</div>`;
+    return `<div class="er-line">${pic}<div class="er-text" lang="${escapeHtml(lang)}">${escapeHtml(ln.text)}</div>
+      <button type="button" class="speak" data-say="${escapeHtml(ln.text)}" aria-label="${t("ask_speak")}" title="${t("ask_speak")}">🔊</button></div>`;
+  }).join("");
+  const warn = d.faithfulness && !d.faithfulness.ok
+    ? `<div class="faith review" style="margin-top:10px"><p class="title">${t("needs_review")}</p></div>` : "";
+  $("ask-result").innerHTML = `<p class="ask-q" lang="${escapeHtml(lang)}">${escapeHtml(question)}</p>
+    <p class="er-head">${t("ask_answer")}</p>${lines}${warn}`;
+  $("ask-result").querySelectorAll(".speak").forEach((b) => {
+    b.onclick = () => {   // read the line aloud — many target users are non-readers
+      const u = new SpeechSynthesisUtterance(b.dataset.say);
+      u.lang = lang;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    };
+  });
+}
+
 // --- Reviews ---
 $("save-review").onclick = async () => {
   if (!lastReview) return;
@@ -975,6 +1092,7 @@ $("lang").addEventListener("change", () => {
   LANG = $("lang").value;
   localStorage.setItem("clara_ui_lang", LANG);
   applyI18n();
+  if (!$("panel-ask").classList.contains("hidden")) loadBoard();  // board labels follow the language
 });
 
 setMode("simplify");   // normalize roving tabindex on load

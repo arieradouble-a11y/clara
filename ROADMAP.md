@@ -142,9 +142,15 @@ disabilities. Same principles apply: assistive, verified, honest.
   through the verified simplify pass, injects format/language wishes upstream,
   reports `profile_applied`, and fails loudly on a broken `CLARA_PROFILE` file.
   *Next: circulate the draft for feedback from AT users and partner orgs.*
-- [ ] **Pictogram prompt builder.** Input, not just output: compose a request by
-  tapping AAC-style symbol boards instead of typing — reuses the symbol
-  providers and `/pictograms/search`.
+- [x] **Pictogram prompt builder.** Input, not just output: the reference UI's
+  **Ask** tab is an AAC-style symbol board (curated core vocabulary in
+  `clara/data/board.json`, labels in all five languages, pictures resolved
+  through the symbol providers — fully offline with Mulberry). Taps compose a
+  telegraphic question; an AAC-aware system prompt tells the model to interpret
+  it kindly; the answer comes back as **Easy Read lines with pictograms** and
+  per-line read-aloud — accessible in, accessible out. `GET /board`, `POST
+  /ask` on both servers. *Next: bring the board to the Next app; grow the
+  vocabulary with validator feedback.*
 - [ ] **Barriers research.** With partner disability organisations, document how
   people with different disabilities actually experience LLM chat interfaces;
   publish the findings. Feeds the profile spec and the proxy defaults.

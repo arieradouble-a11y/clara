@@ -28,7 +28,8 @@ from clara.auth import (
     can_approve,
     is_admin,
 )
-from clara.easyread import easy_read
+from clara.board import board
+from clara.easyread import ask, easy_read
 from clara.export import document_html, document_pdf
 from clara.i18n import ui_strings
 from clara.ingest import from_url, ingest_bytes
@@ -104,6 +105,13 @@ class SymbolSearchRequest(BaseModel):
     limit: int = 12
 
 
+class AskRequest(BaseModel):
+    text: str                          # the composed (possibly telegraphic) question
+    lang: str = "en"
+    provider: str | None = None
+    symbols: str | None = None
+
+
 class SemanticRequest(BaseModel):
     source: str
     output: str
@@ -165,6 +173,23 @@ def verify_endpoint(req: VerifyRequest) -> dict:
 def easyread_endpoint(req: EasyReadRequest) -> dict:
     provider = get_provider(req.provider) if req.provider else None
     return easyread_dict(easy_read(req.text, provider=provider, lang=req.lang, symbols=req.symbols))
+
+
+@app.get("/board")
+def board_endpoint(lang: str = "en", symbols: str | None = None) -> dict:
+    """The AAC-style symbol board for composing a question by tapping pictures."""
+    return board(lang=lang, symbols=symbols)
+
+
+@app.post("/ask")
+def ask_endpoint(req: AskRequest) -> dict:
+    """Answer a board-composed question; the answer comes back as Easy Read
+    lines with pictograms, plus the faithfulness report."""
+    provider = get_provider(req.provider) if req.provider else None
+    res = ask(req.text, provider=provider, lang=req.lang, symbols=req.symbols)
+    d = easyread_dict(res)
+    d["question"] = req.text
+    return d
 
 
 @app.post("/pictograms/search")

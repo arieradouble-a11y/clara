@@ -19,6 +19,7 @@ import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # make 'clara' importable
 
@@ -30,7 +31,8 @@ from clara.auth import (  # noqa: E402
     can_approve,
     is_admin,
 )
-from clara.easyread import easy_read  # noqa: E402
+from clara.board import board  # noqa: E402
+from clara.easyread import ask, easy_read  # noqa: E402
 from clara.export import document_html, document_pdf  # noqa: E402
 from clara.i18n import ui_strings  # noqa: E402
 from clara.ingest import from_url, ingest_bytes  # noqa: E402
@@ -99,6 +101,10 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"status": "ok"})
         elif self.path == "/i18n":
             self._send_json(ui_strings())
+        elif self.path.split("?", 1)[0] == "/board":
+            q = parse_qs(urlparse(self.path).query)
+            self._send_json(board(lang=(q.get("lang") or ["en"])[0],
+                                  symbols=(q.get("symbols") or [None])[0]))
         elif self.path == "/auth/status":
             user = _auth.user_for_token(bearer_token(self.headers.get("Authorization"))) if auth_enabled() else None
             self._send_json({"enabled": auth_enabled(), "users": _auth.count_users(), "user": user})
@@ -142,6 +148,13 @@ class Handler(BaseHTTPRequestHandler):
                 res = easy_read(data.get("text", ""), provider=provider,
                                 lang=data.get("lang", "en"), symbols=data.get("symbols"))
                 self._send_json(easyread_dict(res))
+            elif self.path == "/ask":
+                provider = get_provider(data.get("provider"))
+                res = ask(data.get("text", ""), provider=provider,
+                          lang=data.get("lang", "en"), symbols=data.get("symbols"))
+                out = easyread_dict(res)
+                out["question"] = data.get("text", "")
+                self._send_json(out)
             elif self.path == "/pictograms/search":
                 sp = get_symbol_provider(data.get("symbols"))
                 hits = sp.search(data.get("keyword", ""), lang=data.get("lang", "en"),

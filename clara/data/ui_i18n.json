@@ -111,7 +111,16 @@
     "current_output": "Current output",
     "saved": "Saved",
     "open_in_reviews": "open in Reviews",
-    "new_admin_username": "New admin username"
+    "new_admin_username": "New admin username",
+    "tab_ask": "Ask",
+    "ask_hint": "Tap pictures to build your question, or type it. Then press Ask.",
+    "ask_input_label": "Your question",
+    "ask_send": "Ask",
+    "ask_clear": "Clear",
+    "ask_answer": "Answer",
+    "ask_speak": "Read aloud",
+    "ask_thinking": "Thinking…",
+    "ask_empty": "Build or type a question first."
   },
   "ru": {
     "subtitle_html": "Превращает сложный текст в <strong>проверенный</strong> простой язык. Числа, даты и отрицания сверяются, чтобы ничего не потерялось и не перевернулось.",
@@ -224,7 +233,16 @@
     "current_output": "Текущий результат",
     "saved": "Сохранено",
     "open_in_reviews": "открыть в проверках",
-    "new_admin_username": "Имя администратора"
+    "new_admin_username": "Имя администратора",
+    "tab_ask": "Спросить",
+    "ask_hint": "Нажимайте на картинки, чтобы собрать вопрос, или напечатайте его. Потом нажмите «Спросить».",
+    "ask_input_label": "Ваш вопрос",
+    "ask_send": "Спросить",
+    "ask_clear": "Очистить",
+    "ask_answer": "Ответ",
+    "ask_speak": "Озвучить",
+    "ask_thinking": "Думаю…",
+    "ask_empty": "Сначала соберите или напечатайте вопрос."
   },
   "es": {
     "subtitle_html": "Convierte texto complejo en lenguaje claro <strong>verificado</strong>. Se comprueban números, fechas y negaciones para que nada se pierda ni se invierta en silencio.",
@@ -337,7 +355,16 @@
     "current_output": "Salida actual",
     "saved": "Guardado",
     "open_in_reviews": "abrir en Revisiones",
-    "new_admin_username": "Usuario administrador"
+    "new_admin_username": "Usuario administrador",
+    "tab_ask": "Preguntar",
+    "ask_hint": "Toca las imágenes para formar tu pregunta, o escríbela. Luego pulsa «Preguntar».",
+    "ask_input_label": "Tu pregunta",
+    "ask_send": "Preguntar",
+    "ask_clear": "Borrar",
+    "ask_answer": "Respuesta",
+    "ask_speak": "Leer en voz alta",
+    "ask_thinking": "Pensando…",
+    "ask_empty": "Primero forma o escribe una pregunta."
   },
   "de": {
     "subtitle_html": "Verwandelt komplexen Text in <strong>geprüfte</strong> einfache Sprache. Zahlen, Daten und Verneinungen werden geprüft, damit nichts still verloren geht oder umgedreht wird.",
@@ -450,7 +477,16 @@
     "current_output": "Aktuelle Ausgabe",
     "saved": "Gespeichert",
     "open_in_reviews": "in Prüfungen öffnen",
-    "new_admin_username": "Admin-Benutzername"
+    "new_admin_username": "Admin-Benutzername",
+    "tab_ask": "Fragen",
+    "ask_hint": "Tippen Sie auf Bilder, um Ihre Frage zu bauen, oder tippen Sie Text. Dann drücken Sie „Fragen“.",
+    "ask_input_label": "Ihre Frage",
+    "ask_send": "Fragen",
+    "ask_clear": "Löschen",
+    "ask_answer": "Antwort",
+    "ask_speak": "Vorlesen",
+    "ask_thinking": "Denke nach…",
+    "ask_empty": "Bauen oder tippen Sie zuerst eine Frage."
   },
   "fr": {
     "subtitle_html": "Transforme un texte complexe en langage clair <strong>vérifié</strong>. Les nombres, les dates et les négations sont contrôlés pour que rien ne soit perdu ni inversé en silence.",
@@ -563,6 +599,15 @@
     "current_output": "Sortie actuelle",
     "saved": "Enregistré",
     "open_in_reviews": "ouvrir dans Relectures",
-    "new_admin_username": "Identifiant administrateur"
+    "new_admin_username": "Identifiant administrateur",
+    "tab_ask": "Demander",
+    "ask_hint": "Touchez les images pour composer votre question, ou écrivez-la. Puis appuyez sur « Demander ».",
+    "ask_input_label": "Votre question",
+    "ask_send": "Demander",
+    "ask_clear": "Effacer",
+    "ask_answer": "Réponse",
+    "ask_speak": "Lire à voix haute",
+    "ask_thinking": "Je réfléchis…",
+    "ask_empty": "Composez ou écrivez d'abord une question."
   }
 }

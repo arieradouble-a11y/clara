@@ -1,0 +1,82 @@
+{
+  "_note": "Starter AAC-style board for composing requests by tapping symbols. Core vocabulary + Clara-relevant fringe words, base forms only — interpreting a telegraphic message is the model's job. Labels per UI language; pictograms are resolved at runtime by the symbol provider (see clara/board.py).",
+  "categories": [
+    {
+      "id": "people",
+      "label": {"en": "People", "ru": "Люди", "es": "Personas", "de": "Menschen", "fr": "Personnes"},
+      "words": [
+        {"key": "i", "label": {"en": "I", "ru": "я", "es": "yo", "de": "ich", "fr": "je"}},
+        {"key": "you", "label": {"en": "you", "ru": "ты", "es": "tú", "de": "du", "fr": "tu"}},
+        {"key": "doctor", "label": {"en": "doctor", "ru": "врач", "es": "médico", "de": "Arzt", "fr": "médecin"}},
+        {"key": "family", "label": {"en": "family", "ru": "семья", "es": "familia", "de": "Familie", "fr": "famille"}},
+        {"key": "friend", "label": {"en": "friend", "ru": "друг", "es": "amigo", "de": "Freund", "fr": "ami"}},
+        {"key": "helper", "label": {"en": "helper", "ru": "помощник", "es": "ayudante", "de": "Helfer", "fr": "aide"}}
+      ]
+    },
+    {
+      "id": "actions",
+      "label": {"en": "Actions", "ru": "Действия", "es": "Acciones", "de": "Aktionen", "fr": "Actions"},
+      "words": [
+        {"key": "want", "label": {"en": "want", "ru": "хотеть", "es": "querer", "de": "wollen", "fr": "vouloir"}},
+        {"key": "help", "label": {"en": "help", "ru": "помогать", "es": "ayudar", "de": "helfen", "fr": "aider"}},
+        {"key": "understand", "label": {"en": "understand", "ru": "понимать", "es": "entender", "de": "verstehen", "fr": "comprendre"}},
+        {"key": "explain", "label": {"en": "explain", "ru": "объяснить", "es": "explicar", "de": "erklären", "fr": "expliquer"}},
+        {"key": "read", "label": {"en": "read", "ru": "читать", "es": "leer", "de": "lesen", "fr": "lire"}},
+        {"key": "write", "label": {"en": "write", "ru": "писать", "es": "escribir", "de": "schreiben", "fr": "écrire"}},
+        {"key": "go", "label": {"en": "go", "ru": "идти", "es": "ir", "de": "gehen", "fr": "aller"}},
+        {"key": "pay", "label": {"en": "pay", "ru": "платить", "es": "pagar", "de": "zahlen", "fr": "payer"}}
+      ]
+    },
+    {
+      "id": "questions",
+      "label": {"en": "Questions", "ru": "Вопросы", "es": "Preguntas", "de": "Fragen", "fr": "Questions"},
+      "words": [
+        {"key": "what", "label": {"en": "what", "ru": "что", "es": "qué", "de": "was", "fr": "quoi"}},
+        {"key": "where", "label": {"en": "where", "ru": "где", "es": "dónde", "de": "wo", "fr": "où"}},
+        {"key": "when", "label": {"en": "when", "ru": "когда", "es": "cuándo", "de": "wann", "fr": "quand"}},
+        {"key": "how", "label": {"en": "how", "ru": "как", "es": "cómo", "de": "wie", "fr": "comment"}},
+        {"key": "why", "label": {"en": "why", "ru": "почему", "es": "por qué", "de": "warum", "fr": "pourquoi"}},
+        {"key": "who", "label": {"en": "who", "ru": "кто", "es": "quién", "de": "wer", "fr": "qui"}}
+      ]
+    },
+    {
+      "id": "things",
+      "label": {"en": "Things", "ru": "Вещи", "es": "Cosas", "de": "Dinge", "fr": "Choses"},
+      "words": [
+        {"key": "letter", "label": {"en": "letter", "ru": "письмо", "es": "carta", "de": "Brief", "fr": "lettre"}},
+        {"key": "document", "label": {"en": "document", "ru": "документ", "es": "documento", "de": "Dokument", "fr": "document"}},
+        {"key": "money", "label": {"en": "money", "ru": "деньги", "es": "dinero", "de": "Geld", "fr": "argent"}},
+        {"key": "medicine", "label": {"en": "medicine", "ru": "лекарство", "es": "medicina", "de": "Medikament", "fr": "médicament"}},
+        {"key": "food", "label": {"en": "food", "ru": "еда", "es": "comida", "de": "Essen", "fr": "nourriture"}},
+        {"key": "water", "label": {"en": "water", "ru": "вода", "es": "agua", "de": "Wasser", "fr": "eau"}},
+        {"key": "house", "label": {"en": "house", "ru": "дом", "es": "casa", "de": "Haus", "fr": "maison"}},
+        {"key": "phone", "label": {"en": "phone", "ru": "телефон", "es": "teléfono", "de": "Telefon", "fr": "téléphone"}}
+      ]
+    },
+    {
+      "id": "feelings",
+      "label": {"en": "Feelings", "ru": "Чувства", "es": "Sentimientos", "de": "Gefühle", "fr": "Sentiments"},
+      "words": [
+        {"key": "yes", "label": {"en": "yes", "ru": "да", "es": "sí", "de": "ja", "fr": "oui"}},
+        {"key": "no", "label": {"en": "no", "ru": "нет", "es": "no", "de": "nein", "fr": "non"}},
+        {"key": "good", "label": {"en": "good", "ru": "хорошо", "es": "bien", "de": "gut", "fr": "bien"}},
+        {"key": "bad", "label": {"en": "bad", "ru": "плохо", "es": "mal", "de": "schlecht", "fr": "mal"}},
+        {"key": "pain", "label": {"en": "pain", "ru": "боль", "es": "dolor", "de": "Schmerz", "fr": "douleur"}},
+        {"key": "tired", "label": {"en": "tired", "ru": "усталый", "es": "cansado", "de": "müde", "fr": "fatigué"}},
+        {"key": "happy", "label": {"en": "happy", "ru": "счастливый", "es": "feliz", "de": "glücklich", "fr": "heureux"}},
+        {"key": "sad", "label": {"en": "sad", "ru": "грустный", "es": "triste", "de": "traurig", "fr": "triste"}}
+      ]
+    },
+    {
+      "id": "time",
+      "label": {"en": "Time", "ru": "Время", "es": "Tiempo", "de": "Zeit", "fr": "Temps"},
+      "words": [
+        {"key": "today", "label": {"en": "today", "ru": "сегодня", "es": "hoy", "de": "heute", "fr": "aujourd'hui"}},
+        {"key": "tomorrow", "label": {"en": "tomorrow", "ru": "завтра", "es": "mañana", "de": "morgen", "fr": "demain"}},
+        {"key": "yesterday", "label": {"en": "yesterday", "ru": "вчера", "es": "ayer", "de": "gestern", "fr": "hier"}},
+        {"key": "now", "label": {"en": "now", "ru": "сейчас", "es": "ahora", "de": "jetzt", "fr": "maintenant"}},
+        {"key": "later", "label": {"en": "later", "ru": "позже", "es": "después", "de": "später", "fr": "plus tard"}}
+      ]
+    }
+  ]
+}

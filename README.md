@@ -118,10 +118,15 @@ A zero-dependency reviewer — no Node toolchain, no build step, no API key:
 py web/serve.py            # http://localhost:8000
 ```
 
-Two modes, side by side with drift highlighted:
-- **Simplify** — source → model → simplified + faithfulness report.
+Three modes:
+- **Simplify** — source → model → simplified + faithfulness report, side by side
+  with drift highlighted.
 - **Check a rewrite** — paste an original and any plain-language rewrite; get the
   faithfulness report. Needs no model and works fully offline.
+- **Ask** — an AAC-style symbol board: compose a question by tapping pictures
+  (core vocabulary in all five UI languages), the model interprets the
+  telegraphic message, and the answer comes back as Easy Read lines with
+  pictograms and per-line read-aloud. Accessible input, accessible output.
 
 For a richer application there is a **Next.js app** in [`web-next/`](web-next/)
 (App Router + TypeScript) that talks to the FastAPI backend through a proxy

@@ -10,6 +10,13 @@ import package and CLI command stay `clara`.
 ## [Unreleased]
 
 ### Added
+- **Pictogram prompt builder (Ask tab):** AAC-style input in the reference UI —
+  a symbol board (six categories of core vocabulary, labels in en/ru/es/de/fr,
+  pictures from the pluggable symbol sets; offline with Mulberry) composes a
+  telegraphic question by tapping; an AAC-aware system prompt has the model
+  interpret it; the answer returns as Easy Read lines with pictograms and
+  per-line read-aloud. New endpoints `GET /board` and `POST /ask` on both
+  servers; `ask()` in `clara/easyread.py`.
 - **Accessibility profile (draft spec v0.1):** a small portable JSON document
   where a person states their needs for AI answers once — reading level,
   sentence length, formatting, verification. Spec + JSON Schema in `docs/`;
