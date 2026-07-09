@@ -151,6 +151,11 @@ Set a real model with env, e.g. `CLARA_PROVIDER=anthropic ANTHROPIC_API_KEY=…
 docker compose up`. (The default image leaves out the `pdf`/`ocr` extras, which
 need system libraries.)
 
+**Public demo:** [`render.yaml`](render.yaml) is a one-click Render Blueprint
+that deploys the single-process server with the offline `mock` provider — no key,
+no cost. The **Check a rewrite** tab runs the whole faithfulness checker offline,
+so it's a real live demo even without a model.
+
 ---
 
 ## Output levels

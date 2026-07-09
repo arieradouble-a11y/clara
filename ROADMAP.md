@@ -111,8 +111,12 @@ are all **done**.
   `clara`/`api`/`web`/`tests`, **mypy** on the engine (`clara`), and a **JS
   syntax check** of the reference UI's inline script (`scripts/check_ui_js.py`,
   which has no build step to catch it otherwise). `pip install -e ".[lint]"`.
-- [ ] **Public demo instance** (mock or rate-limited provider) so people can
-  try it without installing.
+- [x] **Public demo instance** (recipe ready). [`render.yaml`](render.yaml) is a
+  one-click Render Blueprint deploying the single-process server with the offline
+  `mock` provider — no key, no cost; the faithfulness "Check a rewrite" tab is a
+  genuine live demo offline. `web/serve.py` honours `$PORT` for hosting.
+  *Remaining: click deploy, and add rate-limiting if switching to a real
+  provider.*
 
 ## Non-goals (for now)
 

@@ -21,4 +21,5 @@ RUN pip install ".[api,ingest,ru,es,de,fr]"
 EXPOSE 8000
 
 # Single-process default: serves the reference UI and the API on one port.
-CMD ["python", "web/serve.py", "--host", "0.0.0.0", "--port", "8000"]
+# The port defaults to 8000 but honours $PORT (set by hosting platforms).
+CMD ["python", "web/serve.py", "--host", "0.0.0.0"]

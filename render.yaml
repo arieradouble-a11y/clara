@@ -1,0 +1,20 @@
+# One-click public demo on Render (https://render.com) — a Blueprint.
+#
+# Runs the single-process reference server (UI + API) from the Dockerfile with
+# the offline `mock` provider: no API key, no cost, no rate-limit worries. The
+# faithfulness checker is fully functional offline, so the "Check a rewrite" tab
+# is a genuine live demo of the deterministic layer.
+#
+# To demo real model rewriting instead, set CLARA_PROVIDER + the provider key as
+# secret env vars — and add rate limiting in front, since the key then costs
+# money on every request.
+services:
+  - type: web
+    name: clara-demo
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CLARA_PROVIDER
+        value: mock

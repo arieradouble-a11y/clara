@@ -297,7 +297,9 @@ class Handler(BaseHTTPRequestHandler):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=int(os.environ.get("CLARA_PORT", 8000)))
+    # Honour $PORT so hosting platforms (Render, Fly, …) can assign one.
+    default_port = int(os.environ.get("CLARA_PORT") or os.environ.get("PORT") or 8000)
+    ap.add_argument("--port", type=int, default=default_port)
     ap.add_argument("--host", default="127.0.0.1")
     args = ap.parse_args(argv)
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
