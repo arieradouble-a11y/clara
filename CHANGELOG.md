@@ -10,6 +10,13 @@ import package and CLI command stay `clara`.
 ## [Unreleased]
 
 ### Added
+- **Russian validation package (docs/ru/):** the Easy Read validation protocol
+  adapted to the Russian context (терминология ясного языка, КПИ ООН / ФЗ-181 /
+  152-ФЗ, ландшафт организаций — ВОИ, ВОРДИ, профильные НКО, проект «Перевод
+  на ясный и простой языки в России», финансирование через гранты) plus a
+  ready-to-send partner outreach letter bundling three asks: validation
+  sessions, AI-barriers research, and feedback on the accessibility profile
+  draft.
 - **Pictogram prompt builder (Ask tab):** AAC-style input in the reference UI —
   a symbol board (six categories of core vocabulary, labels in en/ru/es/de/fr,
   pictures from the pluggable symbol sets; offline with Mulberry) composes a

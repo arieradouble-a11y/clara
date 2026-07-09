@@ -85,10 +85,12 @@ are all **done**.
 - [~] **Validation with target readers.** The Easy Read standard (Inclusion
   Europe) requires validation by people with intellectual disabilities. The
   **method is drafted and published** —
-  [docs/validation-protocol.md](docs/validation-protocol.md) — but the validation
-  itself is human work that **cannot be done in code**: it needs a partner NGO /
-  SLP self-advocacy group. Until a round is run and published, the README keeps
-  saying "assistive, not authoritative" — and it stays true after, too.
+  [docs/validation-protocol.md](docs/validation-protocol.md), with a **Russian
+  adaptation and partner outreach letter**
+  ([docs/ru/](docs/ru/validation-protocol.md)) targeting ВОИ / ВОРДИ /
+  specialised NGOs — but the validation itself is human work that **cannot be
+  done in code**. Until a round is run and published, the README keeps saying
+  "assistive, not authoritative" — and it stays true after, too.
 - [x] **Review workflow hardening**: approve/reject now requires an admin or the
   review's assigned validator (`can_approve`), per-review assignment
   (`assign_review` + admin-only `/reviews/assign`, `/auth/users`), login
@@ -151,9 +153,11 @@ disabilities. Same principles apply: assistive, verified, honest.
   per-line read-aloud — accessible in, accessible out. `GET /board`, `POST
   /ask` on both servers. *Next: bring the board to the Next app; grow the
   vocabulary with validator feedback.*
-- [ ] **Barriers research.** With partner disability organisations, document how
+- [~] **Barriers research.** With partner disability organisations, document how
   people with different disabilities actually experience LLM chat interfaces;
   publish the findings. Feeds the profile spec and the proxy defaults.
+  **Outreach package prepared** ([docs/ru/voi-outreach.md](docs/ru/voi-outreach.md)
+  bundles this with the validation ask); awaiting a partner organisation.
 
 ## Non-goals (for now)
 

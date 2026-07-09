@@ -1,5 +1,9 @@
 # Easy Read validation protocol (draft)
 
+> **Русская версия** (адаптация под российский контекст + письмо-предложение
+> для партнёрских организаций): [ru/validation-protocol.md](ru/validation-protocol.md),
+> [ru/voi-outreach.md](ru/voi-outreach.md).
+
 > **Status: method drafted, not yet run.** This document describes *how* Clara's
 > output should be validated by the people it is for. The validation itself has
 > not happened. Until it does, Clara is **assistive, not authoritative** — and it
