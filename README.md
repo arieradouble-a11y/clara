@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/arieradouble-a11y/clara/actions/workflows/ci.yml/badge.svg)](https://github.com/arieradouble-a11y/clara/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/arieradouble-a11y/clara)
 
 **Turn complex text into verified plain language.**
 
@@ -15,9 +16,12 @@ Any model can shorten text. What makes Clara different is that it **checks the
 result did not lie**: dropped deadlines, flipped negations, and invented numbers
 are caught deterministically and flagged for a human.
 
-> **Status:** early alpha. The core engine (simplify → verify → score) runs and
-> is tested. PDF ingestion, Easy Read image pairing, tagged-PDF output, a review
-> workflow, and the web UI are on the roadmap below.
+> **Status:** alpha, feature-complete through the roadmap's Phase 6: ingestion
+> (PDF/DOCX/OCR), Easy Read with pictograms, tagged-PDF export, review workflow,
+> localized UIs, an LLM accessibility proxy, and an AAC-style symbol board. The
+> one thing still missing is the one that matters most: **validation with target
+> readers** — see the [roadmap](ROADMAP.md) and
+> [validation protocol](docs/validation-protocol.md).
 
 ---
 
@@ -209,7 +213,8 @@ need system libraries.)
 **Public demo:** [`render.yaml`](render.yaml) is a one-click Render Blueprint
 that deploys the single-process server with the offline `mock` provider — no key,
 no cost. The **Check a rewrite** tab runs the whole faithfulness checker offline,
-so it's a real live demo even without a model.
+and the **Ask** symbol board works too, so it's a real live demo even without a
+model. Click the *Deploy to Render* badge at the top of this README.
 
 ---
 
