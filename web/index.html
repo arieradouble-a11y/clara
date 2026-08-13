@@ -121,6 +121,8 @@
   .speak { border: 1px solid var(--line); background: transparent; border-radius: 8px;
     cursor: pointer; font: inherit; padding: 4px 10px; flex: none; }
   .speak:hover { border-color: var(--accent); }
+  #ask-mic[aria-pressed="true"] { background: var(--bad-bg); color: var(--bad);
+    border-color: var(--bad); }   /* recording indicator */
   .rv-row { display: flex; justify-content: space-between; align-items: center; gap: 12px;
     padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; }
   .rv-row:hover { border-color: var(--accent); }
@@ -236,6 +238,7 @@
     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
       <input type="text" id="ask-text"
         style="flex:1; min-width:220px; height:44px; padding:0 14px; font-size:20px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text)" />
+      <button class="btn secondary hidden" id="ask-mic" aria-pressed="false">🎤 <span data-i18n="voice_input">Voice input</span></button>
       <button class="btn" id="ask-send" data-i18n="ask_send">Ask</button>
       <button class="btn secondary" id="ask-clear" data-i18n="ask_clear">Clear</button>
     </div>
@@ -288,6 +291,7 @@
       <span class="hint" data-i18n="semantic_hint">Optional — uses the configured model to catch meaning drift the deterministic check can't see.</span>
     </div>
     <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+      <button class="btn secondary hidden" id="speak-result">🔊 <span data-i18n="ask_speak">Read aloud</span></button>
       <button class="btn secondary" id="dl-html" data-i18n="download_html">Download accessible HTML</button>
       <button class="btn secondary" id="dl-pdf" data-i18n="download_pdf">Download tagged PDF</button>
       <button class="btn secondary" id="save-review" data-i18n="save_review">Save to review</button>
@@ -899,25 +903,66 @@ $("ask-send").onclick = async () => {
 
 function renderAsk(question, d) {
   const lang = $("lang").value;
+  const canSpeak = "speechSynthesis" in window;
   const lines = (d.lines || []).map((ln) => {
     const pic = ln.image_url
       ? `<img src="${escapeHtml(ln.image_url)}" alt="${escapeHtml(ln.keyword || "")}" loading="lazy" />`
       : `<div class="noimg">${t("no_picture")}</div>`;
-    return `<div class="er-line">${pic}<div class="er-text" lang="${escapeHtml(lang)}">${escapeHtml(ln.text)}</div>
-      <button type="button" class="speak" data-say="${escapeHtml(ln.text)}" aria-label="${t("ask_speak")}" title="${t("ask_speak")}">🔊</button></div>`;
+    const speakBtn = canSpeak
+      ? `<button type="button" class="speak" data-say="${escapeHtml(ln.text)}" aria-label="${t("ask_speak")}" title="${t("ask_speak")}">🔊</button>`
+      : "";
+    return `<div class="er-line">${pic}<div class="er-text" lang="${escapeHtml(lang)}">${escapeHtml(ln.text)}</div>${speakBtn}</div>`;
   }).join("");
   const warn = d.faithfulness && !d.faithfulness.ok
     ? `<div class="faith review" style="margin-top:10px"><p class="title">${t("needs_review")}</p></div>` : "";
+  const speakAll = canSpeak
+    ? ` <button type="button" class="speak" id="ask-speak-all" aria-label="${t("ask_speak")}">🔊 ${t("ask_speak")}</button>`
+    : "";
   $("ask-result").innerHTML = `<p class="ask-q" lang="${escapeHtml(lang)}">${escapeHtml(question)}</p>
-    <p class="er-head">${t("ask_answer")}</p>${lines}${warn}`;
-  $("ask-result").querySelectorAll(".speak").forEach((b) => {
-    b.onclick = () => {   // read the line aloud — many target users are non-readers
-      const u = new SpeechSynthesisUtterance(b.dataset.say);
-      u.lang = lang;
-      speechSynthesis.cancel();
-      speechSynthesis.speak(u);
-    };
+    <p class="er-head">${t("ask_answer")}${speakAll}</p>${lines}${warn}`;
+  $("ask-result").querySelectorAll(".speak[data-say]").forEach((b) => {
+    b.onclick = () => speak(b.dataset.say);  // per line — many target users are non-readers
   });
+  if (canSpeak && $("ask-speak-all")) {
+    $("ask-speak-all").onclick = () => speak((d.lines || []).map((l) => l.text).join(". "));
+  }
+}
+
+// --- Voice: browser speech APIs — zero-dependency, degrade by hiding ----------
+// STT/TTS wrap the pipeline; the text in between stays the verifiable artifact.
+const BCP47 = { en: "en-US", ru: "ru-RU", es: "es-ES", de: "de-DE", fr: "fr-FR" };
+
+function speak(text) {
+  if (!("speechSynthesis" in window) || !text) return;
+  if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }  // toggle = stop
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = BCP47[$("lang").value] || $("lang").value;
+  speechSynthesis.speak(u);
+}
+
+if ("speechSynthesis" in window) {
+  $("speak-result").classList.remove("hidden");
+  $("speak-result").onclick = () => speak(lastResult ? lastResult.output : "");
+}
+
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRec) {
+  $("ask-mic").classList.remove("hidden");
+  let rec = null;
+  $("ask-mic").onclick = () => {
+    if (rec) { rec.stop(); return; }       // second press stops listening
+    rec = new SpeechRec();
+    rec.lang = BCP47[$("lang").value] || "en-US";
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const said = e.results[0][0].transcript;
+      const cur = $("ask-text").value;
+      $("ask-text").value = (cur ? cur.trimEnd() + " " : "") + said;
+    };
+    rec.onend = () => { rec = null; $("ask-mic").setAttribute("aria-pressed", "false"); };
+    $("ask-mic").setAttribute("aria-pressed", "true");
+    rec.start();
+  };
 }
 
 // --- Reviews ---

@@ -120,7 +120,8 @@
     "ask_answer": "Answer",
     "ask_speak": "Read aloud",
     "ask_thinking": "Thinking…",
-    "ask_empty": "Build or type a question first."
+    "ask_empty": "Build or type a question first.",
+    "voice_input": "Voice input"
   },
   "ru": {
     "subtitle_html": "Превращает сложный текст в <strong>проверенный</strong> простой язык. Числа, даты и отрицания сверяются, чтобы ничего не потерялось и не перевернулось.",
@@ -242,7 +243,8 @@
     "ask_answer": "Ответ",
     "ask_speak": "Озвучить",
     "ask_thinking": "Думаю…",
-    "ask_empty": "Сначала соберите или напечатайте вопрос."
+    "ask_empty": "Сначала соберите или напечатайте вопрос.",
+    "voice_input": "Голосовой ввод"
   },
   "es": {
     "subtitle_html": "Convierte texto complejo en lenguaje claro <strong>verificado</strong>. Se comprueban números, fechas y negaciones para que nada se pierda ni se invierta en silencio.",
@@ -364,7 +366,8 @@
     "ask_answer": "Respuesta",
     "ask_speak": "Leer en voz alta",
     "ask_thinking": "Pensando…",
-    "ask_empty": "Primero forma o escribe una pregunta."
+    "ask_empty": "Primero forma o escribe una pregunta.",
+    "voice_input": "Entrada de voz"
   },
   "de": {
     "subtitle_html": "Verwandelt komplexen Text in <strong>geprüfte</strong> einfache Sprache. Zahlen, Daten und Verneinungen werden geprüft, damit nichts still verloren geht oder umgedreht wird.",
@@ -486,7 +489,8 @@
     "ask_answer": "Antwort",
     "ask_speak": "Vorlesen",
     "ask_thinking": "Denke nach…",
-    "ask_empty": "Bauen oder tippen Sie zuerst eine Frage."
+    "ask_empty": "Bauen oder tippen Sie zuerst eine Frage.",
+    "voice_input": "Spracheingabe"
   },
   "fr": {
     "subtitle_html": "Transforme un texte complexe en langage clair <strong>vérifié</strong>. Les nombres, les dates et les négations sont contrôlés pour que rien ne soit perdu ni inversé en silence.",
@@ -608,6 +612,7 @@
     "ask_answer": "Réponse",
     "ask_speak": "Lire à voix haute",
     "ask_thinking": "Je réfléchis…",
-    "ask_empty": "Composez ou écrivez d'abord une question."
+    "ask_empty": "Composez ou écrivez d'abord une question.",
+    "voice_input": "Saisie vocale"
   }
 }
