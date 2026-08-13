@@ -1,0 +1,22 @@
+{
+  "ext_name": { "message": "Clara — simplify any text" },
+  "ext_desc": { "message": "Select text on any page — including ChatGPT, Claude, or Gemini — and get a verified plain-language version with read-aloud." },
+  "menu_simplify": { "message": "Simplify with Clara" },
+  "overlay_title": { "message": "Clara — simple version" },
+  "overlay_warning": { "message": "Check this text. Some facts (numbers or dates) may have been lost in simplification." },
+  "overlay_speak": { "message": "Read aloud" },
+  "overlay_close": { "message": "Close" },
+  "overlay_error": { "message": "Could not reach the Clara server. Check the extension options." },
+  "popup_label": { "message": "Text to simplify" },
+  "popup_simplify": { "message": "Simplify" },
+  "popup_options": { "message": "Options" },
+  "opt_server": { "message": "Clara server" },
+  "opt_server_hint": { "message": "Default is your own computer (http://localhost:8000) — the text never leaves your machine. The public demo (https://clara-demo.onrender.com) echoes text back unchanged: it has no model key." },
+  "opt_lang": { "message": "Language" },
+  "opt_lang_auto": { "message": "Automatic (browser language)" },
+  "opt_level": { "message": "Reading level" },
+  "opt_level_plain": { "message": "Plain language" },
+  "opt_level_easy": { "message": "Easy Read" },
+  "opt_save": { "message": "Save" },
+  "opt_saved": { "message": "Saved" }
+}

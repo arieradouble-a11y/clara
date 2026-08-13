@@ -10,6 +10,15 @@ import package and CLI command stay `clara`.
 ## [Unreleased]
 
 ### Added
+- **Voice mode (reference UI):** dictate a question on the Ask tab (Web Speech
+  STT with per-language BCP-47 mapping; the mic hides where unsupported) and
+  read any result aloud — whole simplified outputs, whole Easy Read answers, or
+  line by line. Zero dependencies; works on the public demo.
+- **Browser extension (`extension/`, MV3, en/ru):** right-click → "Simplify
+  with Clara" on any page — including ChatGPT/Claude/Gemini web UIs — showing an
+  accessible overlay with the simplified text, read-aloud, and the faithfulness
+  warning; toolbar popup for pasted text; options for server/language/level.
+  On-demand injection only; localhost server by default (privacy).
 - **Russian validation package (docs/ru/):** the Easy Read validation protocol
   adapted to the Russian context (терминология ясного языка, КПИ ООН / ФЗ-181 /
   152-ФЗ, ландшафт организаций — ВОИ, ВОРДИ, профильные НКО, проект «Перевод

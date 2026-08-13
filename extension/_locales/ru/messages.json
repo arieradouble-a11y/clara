@@ -1,0 +1,22 @@
+{
+  "ext_name": { "message": "Clara — упростить любой текст" },
+  "ext_desc": { "message": "Выделите текст на любой странице — включая ChatGPT, Claude или Gemini — и получите проверенную простую версию с озвучкой." },
+  "menu_simplify": { "message": "Упростить с Clara" },
+  "overlay_title": { "message": "Clara — простая версия" },
+  "overlay_warning": { "message": "Проверьте этот текст. При упрощении могли потеряться факты (числа или даты)." },
+  "overlay_speak": { "message": "Озвучить" },
+  "overlay_close": { "message": "Закрыть" },
+  "overlay_error": { "message": "Не удалось связаться с сервером Clara. Проверьте настройки расширения." },
+  "popup_label": { "message": "Текст для упрощения" },
+  "popup_simplify": { "message": "Упростить" },
+  "popup_options": { "message": "Настройки" },
+  "opt_server": { "message": "Сервер Clara" },
+  "opt_server_hint": { "message": "По умолчанию — ваш собственный компьютер (http://localhost:8000): текст не покидает машину. Публичное демо (https://clara-demo.onrender.com) возвращает текст без изменений — у него нет ключа модели." },
+  "opt_lang": { "message": "Язык" },
+  "opt_lang_auto": { "message": "Автоматически (язык браузера)" },
+  "opt_level": { "message": "Уровень чтения" },
+  "opt_level_plain": { "message": "Простой язык" },
+  "opt_level_easy": { "message": "Лёгкое чтение" },
+  "opt_save": { "message": "Сохранить" },
+  "opt_saved": { "message": "Сохранено" }
+}

@@ -159,6 +159,37 @@ disabilities. Same principles apply: assistive, verified, honest.
   **Outreach package prepared** ([docs/ru/voi-outreach.md](docs/ru/voi-outreach.md)
   bundles this with the validation ask); awaiting a partner organisation.
 
+## Phase 7 — Reach: Clara on every surface
+
+The proxy covers clients that let you change the API base URL. Most people meet
+LLMs elsewhere — vendor web UIs, desktop apps — and the first request from
+partner-organisation contacts was **voice**. One rule everywhere: the text stays
+the verifiable artifact. Speech wraps the pipeline (STT → Clara → TTS); an
+audio-native model would bypass the faithfulness check, which is the one thing
+we refuse to give up.
+
+- [x] **Voice mode in the reference UI** (browser speech APIs, zero-dependency,
+  degrade-by-hiding): dictate a question on the Ask tab (Web Speech STT, mic
+  hidden where unsupported), read any result aloud, read a whole Easy Read
+  answer or one line at a time. Works on the public demo, including Russian.
+  *Caveat: Chrome's speech recognition sends audio to vendor servers — the
+  privacy path is the server-side `[voice]` extra below.*
+- [x] **Browser extension** ([extension/](extension/), Manifest V3, en/ru): select
+  text on **any** page — including ChatGPT / Claude / Gemini web UIs, which
+  don't let you change their backend — right-click → "Simplify with Clara" → an
+  accessible overlay (dialog role, Escape, large text) with the simplified
+  version, read-aloud, and the faithfulness warning. Toolbar popup for pasted
+  text; options choose the server (localhost by default — privacy), language,
+  level. On-demand injection only (`activeTab`), no persistent content scripts.
+  *Not yet store-published or cross-browser tested — load unpacked.*
+- [ ] **Server-side voice** (`[voice]` extra): faster-whisper STT + Piper/Silero
+  TTS endpoints — for Firefox (no Web Speech), for quality Russian voices, and
+  for privacy (nothing leaves the machine).
+- [ ] **MCP server**: expose simplify/verify/easyread as tools for Claude
+  Desktop and other MCP hosts.
+- [ ] **Deeper integration**: auto-simplify streamed answers inside vendor chat
+  UIs (per-site adapters); a desktop overlay (global hotkey on selected text).
+
 ## Non-goals (for now)
 
 - Replacing human review — the whole design assumes a person signs off.

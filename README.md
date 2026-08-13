@@ -128,9 +128,11 @@ Three modes:
 - **Check a rewrite** — paste an original and any plain-language rewrite; get the
   faithfulness report. Needs no model and works fully offline.
 - **Ask** — an AAC-style symbol board: compose a question by tapping pictures
-  (core vocabulary in all five UI languages), the model interprets the
-  telegraphic message, and the answer comes back as Easy Read lines with
-  pictograms and per-line read-aloud. Accessible input, accessible output.
+  (core vocabulary in all five UI languages) **or dictate it by voice**; the
+  model interprets the telegraphic message, and the answer comes back as Easy
+  Read lines with pictograms and read-aloud (whole answer or line by line).
+  Accessible input, accessible output. Every result view has a read-aloud
+  button; speech features hide themselves where the browser lacks the APIs.
 
 For a richer application there is a **Next.js app** in [`web-next/`](web-next/)
 (App Router + TypeScript) that talks to the FastAPI backend through a proxy
@@ -195,6 +197,16 @@ just a polite request to the model), injects the format/language wishes
 upstream, reports `profile_applied` in every response, and **refuses to start a
 request if the profile file is broken** — accessibility settings must never
 fail silently. A profile can also travel per request: `"clara": {"profile": {…}}`.
+
+### Browser extension
+
+Vendor chat UIs (ChatGPT, Claude, Gemini) don't let you change their backend —
+so Clara sits **on top**: the [`extension/`](extension/) folder is a Manifest V3
+browser extension. Select text on any page → right-click → *Simplify with
+Clara* → an accessible overlay shows the plain-language version with read-aloud
+and the faithfulness verdict. Localhost server by default (nothing leaves your
+machine); en/ru UI. Not store-published yet — see
+[extension/README.md](extension/README.md) to load it unpacked.
 
 ### With Docker
 

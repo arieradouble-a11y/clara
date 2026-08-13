@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  body { margin: 0; padding: 24px; max-width: 560px; background: #f6f7f9; color: #1a1a1a;
+         font: 15px/1.6 system-ui, sans-serif; }
+  label { display: block; font-weight: 600; margin: 14px 0 4px; }
+  input, select { width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px;
+                  border: 1px solid #cbd2d9; border-radius: 8px; background: #fff; }
+  button { margin-top: 16px; border: 0; background: #0f7d74; color: #fff; font: inherit;
+           font-weight: 600; padding: 9px 18px; border-radius: 8px; cursor: pointer; }
+  .hint { color: #5b6472; font-size: 13px; margin: 4px 0 0; }
+  #saved { color: #1a7f37; font-weight: 600; margin-left: 10px; visibility: hidden; }
+  :focus-visible { outline: 3px solid #0f7d74; outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <h1 style="font-size:20px" id="h"></h1>
+
+  <label for="server" id="lbl-server"></label>
+  <input type="url" id="server" />
+  <p class="hint" id="hint-server"></p>
+
+  <label for="lang" id="lbl-lang"></label>
+  <select id="lang">
+    <option value="auto" id="opt-auto"></option>
+    <option value="en">English</option>
+    <option value="ru">Русский</option>
+    <option value="es">Español</option>
+    <option value="de">Deutsch</option>
+    <option value="fr">Français</option>
+  </select>
+
+  <label for="level" id="lbl-level"></label>
+  <select id="level">
+    <option value="plain" id="opt-plain"></option>
+    <option value="easy_read" id="opt-easy"></option>
+  </select>
+
+  <button id="save"></button><span id="saved"></span>
+  <script src="options.js"></script>
+</body>
+</html>
