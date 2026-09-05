@@ -28,8 +28,11 @@
   header h1 { font-size: 28px; margin: 8px 0 4px; }
   header p { color: var(--muted); margin: 0 0 20px; }
   a { color: var(--accent); }
-  .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 4px; width: max-content; margin-bottom: 20px; }
+  /* Wraps rather than overflowing: four tabs at 320px / 400% zoom must reflow
+     (WCAG 1.4.10), not force horizontal scrolling. */
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 4px;
+    width: auto; max-width: 100%; margin-bottom: 20px; }
   .tabs button { border: 0; background: transparent; color: var(--muted); font: inherit;
     padding: 8px 18px; border-radius: 9px; cursor: pointer; }
   .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
@@ -118,6 +121,7 @@
   .tile .noimg-sm { width: 56px; height: 56px; border: 1px dashed var(--line); border-radius: 8px; }
   .tile span { font-size: 15px; line-height: 1.2; text-align: center; }
   .ask-q { font-size: 18px; color: var(--muted); margin: 0 0 10px; }
+  #ask-speak-all { margin: 0 0 10px; }
   .speak { border: 1px solid var(--line); background: transparent; border-radius: 8px;
     cursor: pointer; font: inherit; padding: 4px 10px; flex: none; }
   .speak:hover { border-color: var(--accent); }
@@ -136,10 +140,18 @@
   .rv-comment { border-left: 2px solid var(--line); padding: 4px 0 4px 12px; margin: 6px 0; }
   .rv-comment .who { font-size: 13px; color: var(--muted); }
   .hidden { display: none; }
+  /* Visually hidden but available to assistive tech. Never display:none —
+     a display:none live region is not in the accessibility tree at all. */
+  .clara-vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .clara-vh:focus { outline: none; }
   footer { color: var(--muted); font-size: 14px; margin-top: 32px; }
 </style>
 </head>
 <body>
+<!-- The ONLY live region on this page. Mounted empty at init: a live region
+     populated at mount announces nothing. Content areas carry no live semantics. -->
+<div id="clara-announcer" class="clara-vh" aria-live="polite" aria-atomic="false"></div>
 <main>
   <header>
     <h1>Clara</h1>
@@ -244,7 +256,7 @@
     </div>
     <div id="board-cats" class="board-cats"></div>
     <div id="board-grid" class="board-grid"></div>
-    <div id="ask-result" class="hidden" style="margin-top:20px" aria-live="polite"></div>
+    <div id="ask-result" class="hidden" style="margin-top:20px"></div>
   </section>
 
   <!-- Reviews mode -->
@@ -264,10 +276,11 @@
     <div id="review-detail" class="hidden" style="margin-top:16px"></div>
   </section>
 
-  <div id="error" class="error hidden" role="alert"></div>
+  <div id="error" class="error hidden"></div>
 
   <!-- Results -->
-  <section id="results" class="hidden" aria-live="polite">
+  <section id="results" class="hidden" aria-labelledby="results-heading">
+    <h2 id="results-heading" tabindex="-1" class="clara-vh" data-i18n="results_heading">Result</h2>
     <div class="metrics" id="metrics"></div>
 
     <div id="view-standard" class="grid2" style="margin-bottom:16px">
@@ -336,6 +349,57 @@ async function initI18n() {
   LANG = localStorage.getItem("clara_ui_lang") || $("lang").value || "en";
   $("lang").value = LANG;
   applyI18n();
+}
+
+// --- The single announcement channel -----------------------------------------
+// Rules this code exists to keep, learned the hard way (see
+// docs/research/a11y-layer-design-brief.md):
+//   1. A live region must be in the tree and EMPTY before content lands in it.
+//      A region rendered together with its text announces nothing.
+//   2. Never put live semantics on the content itself. A streaming or
+//      re-rendered container fires one announcement per mutation, with no
+//      coalescing, and floods the user.
+//   3. One live region per page. Simultaneous updates to two are undefined in
+//      ARIA, and in practice only one is spoken.
+// So: results and errors are plain content; anything worth speaking is written
+// here briefly, then cleared.
+let announceTimer = null;
+let busyTimer = null;
+
+function announce(msg) {
+  const el = $("clara-announcer");
+  if (!el || !msg) return;
+  clearTimeout(announceTimer);
+  el.textContent = "";                    // screen readers suppress identical repeats
+  // A separate task, not requestAnimationFrame: rAF never runs in a hidden or
+  // throttled tab, which silently swallowed the announcement entirely.
+  setTimeout(() => {
+    el.textContent = msg;
+    announceTimer = setTimeout(() => { el.textContent = ""; }, 3000);
+  }, 60);
+}
+
+// Debounced: a fast answer should say nothing at all rather than "working" then
+// immediately "ready".
+function announceBusy() {
+  clearTimeout(busyTimer);
+  busyTimer = setTimeout(() => announce(t("working")), 500);
+}
+function announceDone(msg) {
+  clearTimeout(busyTimer);
+  announce(msg);
+}
+
+const wordCount = (s) => (String(s || "").trim().match(/\S+/g) || []).length;
+
+// Focus moves exactly once per result, to the result's heading — the thing
+// blind users of AI chat report missing most is any way to get to the answer.
+function finishResult(summary) {
+  $("results").classList.remove("hidden");
+  announceDone(summary);
+  const h = $("results-heading");
+  if (h) h.focus();
+  $("results").scrollIntoView({ behavior: SCROLL, block: "nearest" });
 }
 let lastResult = null;  // {source, output, lang} for the optional AI semantic check
 let lastExport = null;  // {kind, lang, title, text|lines|blocks, footer} for accessible export
@@ -423,6 +487,7 @@ function showError(msg) {
   const el = $("error");
   el.textContent = msg;
   el.classList.remove("hidden");
+  announceDone(msg);   // no role="alert" here: one live region, and it is the announcer
 }
 function clearError() { $("error").classList.add("hidden"); }
 
@@ -484,8 +549,7 @@ function renderResult({ original, output, srcR, outR, faith, labelBKey, level })
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
-  $("results").classList.remove("hidden");
-  $("results").scrollIntoView({ behavior: SCROLL, block: "nearest" });
+  finishResult(t("sr_ready_words", { n: wordCount(output) }));
 }
 
 // Structured simplify: keep headings and lists in both panels and in the export.
@@ -511,8 +575,7 @@ function renderStructured(d, level) {
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
-  $("results").classList.remove("hidden");
-  $("results").scrollIntoView({ behavior: SCROLL, block: "nearest" });
+  finishResult(t("sr_ready_words", { n: wordCount(blocksToText(d.blocks)) }));
 }
 
 function renderEasyRead(d) {
@@ -533,8 +596,7 @@ function renderEasyRead(d) {
   $("semantic").innerHTML = "";
   $("approved-note").classList.add("hidden");
   $("approve").disabled = false;
-  $("results").classList.remove("hidden");
-  $("results").scrollIntoView({ behavior: SCROLL, block: "nearest" });
+  finishResult(t("sr_ready_lines", { n: (d.lines || []).length }));
 }
 
 // Each line's picture is a button; clicking it (or "Change") opens the picker so
@@ -683,7 +745,7 @@ function renderAuthBar() {
 async function doAuth(register) {
   const username = $("auth-user").value.trim();
   const password = $("auth-pass").value;
-  if (!username || !password) return showError("Enter a username and password.");
+  if (!username || !password) return showError(t("enter_credentials"));
   clearError();
   try {
     const d = await post(register ? "/auth/register" : "/auth/login", { username, password });
@@ -701,9 +763,10 @@ async function doLogout() {
 $("run-simplify").onclick = async () => {
   clearError();
   const text = $("src").value.trim();
-  if (!text) return showError("Enter some text to simplify.");
+  if (!text) return showError(t("enter_text"));
   const level = $("level").value;
   $("run-simplify").disabled = true;
+  announceBusy();
   try {
     const useStructure = ingestedBlocks && ingestedBlocks.length && $("preserve-structure").checked;
     if (level === "easy_read") {
@@ -728,8 +791,9 @@ $("run-simplify").onclick = async () => {
 $("run-check").onclick = async () => {
   clearError();
   const source = $("csrc").value.trim(), output = $("cout").value.trim();
-  if (!source || !output) return showError("Fill in both the original and the rewrite.");
+  if (!source || !output) return showError(t("fill_both"));
   $("run-check").disabled = true;
+  announceBusy();
   try {
     const d = await post("/verify", { source, output, lang: $("lang").value });
     renderResult({
@@ -889,6 +953,7 @@ $("ask-send").onclick = async () => {
   if (!text) return showError(t("ask_empty"));
   clearError();
   $("ask-send").disabled = true;
+  announceBusy();
   $("ask-result").classList.remove("hidden");
   $("ask-result").innerHTML = `<p class="hint">${t("ask_thinking")}</p>`;
   try {
@@ -919,7 +984,9 @@ function renderAsk(question, d) {
     ? ` <button type="button" class="speak" id="ask-speak-all" aria-label="${t("ask_speak")}">🔊 ${t("ask_speak")}</button>`
     : "";
   $("ask-result").innerHTML = `<p class="ask-q" lang="${escapeHtml(lang)}">${escapeHtml(question)}</p>
-    <p class="er-head">${t("ask_answer")}${speakAll}</p>${lines}${warn}`;
+    <h2 class="er-head" id="ask-answer-heading" tabindex="-1">${t("ask_answer")}</h2>${speakAll}${lines}${warn}`;
+  announceDone(t("sr_ready_lines", { n: (d.lines || []).length }));
+  $("ask-answer-heading").focus();
   $("ask-result").querySelectorAll(".speak[data-say]").forEach((b) => {
     b.onclick = () => speak(b.dataset.say);  // per line — many target users are non-readers
   });

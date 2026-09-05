@@ -6,6 +6,16 @@ The text still passes through the faithfulness check — pictures never excuse a
 dropped fact. Pictogram matching is best-effort and meant to be reviewed by a
 human: the chosen keyword is returned so a reviewer can swap the image. Stopwords,
 the word alphabet, and the pictogram locale come from the language pack.
+
+WHAT THIS OUTPUT IS: an **Easy Read draft, not validated Easy Read**. The
+Inclusion Europe standard requires that material be checked by people with
+intellectual disabilities before it carries the name; labelling unvalidated
+machine output as Easy Read is a standards violation, and the evidence for
+automatic simplification is weaker than it looks — the most rigorous randomised
+trial found no significant gain in comprehension or retention, and automatically
+and manually simplified texts are not measurement-equivalent for these readers.
+Treat this as a starting point for a human editor and a validation session (see
+docs/validation-protocol.md), never as a finished accessible document.
 """
 from __future__ import annotations
 

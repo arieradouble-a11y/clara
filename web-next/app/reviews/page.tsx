@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
+import { useAnnounce } from "@/components/Announcer";
 import { useI18n } from "@/lib/i18n";
 import type { Review, ReviewSummary } from "@/lib/types";
 
@@ -15,6 +16,8 @@ const STATUS_KEY: Record<string, string> = {
 export default function ReviewsPage() {
   const auth = useAuth();
   const { t } = useI18n();
+  const announce = useAnnounce();
+  const fail = (msg: string) => { setError(msg); announce(msg); };
   const statusLabel = (s: string) => (s ? (STATUS_KEY[s] ? t(STATUS_KEY[s]) : s.replace(/_/g, " ")) : t("filter_all"));
   const StatusBadge = ({ status }: { status: string }) =>
     <span className={`badge-status st-${status}`}>{statusLabel(status)}</span>;
@@ -39,7 +42,7 @@ export default function ReviewsPage() {
       const d = await api<{ reviews: ReviewSummary[] }>("reviews/list", filter ? { status: filter } : {});
       setRows(d.reviews);
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     }
   }, [filter, auth.enabled, auth.user]);
 
@@ -54,7 +57,7 @@ export default function ReviewsPage() {
       setSelected(r);
       setRevision(r.output);
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     }
   }
 
@@ -65,7 +68,7 @@ export default function ReviewsPage() {
       setRevision(r.output);
       void load();
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     }
   }
 
@@ -83,7 +86,7 @@ export default function ReviewsPage() {
         </select>
       </div>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <div className="error">{error}</div>}
 
       {locked ? (
         <p className="hint">{t("please_signin")}</p>
@@ -102,7 +105,7 @@ export default function ReviewsPage() {
       )}
 
       {selected && (
-        <section className="card" style={{ marginTop: 16 }} aria-live="polite">
+        <section className="card" style={{ marginTop: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
             <div><b>{selected.title}</b> <span className="hint">#{selected.id} · {selected.lang}/{selected.level}</span></div>
             <StatusBadge status={selected.status} />

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api, download } from "@/lib/api";
 import type { NormalizedResult, SemanticReport } from "@/lib/types";
+import { useAnnounce } from "./Announcer";
 import { useI18n } from "@/lib/i18n";
 import { ReadabilityBadges } from "./ReadabilityBadges";
 import { FaithfulnessCard } from "./FaithfulnessCard";
@@ -17,12 +18,26 @@ const FOOTER =
 // internal state by giving it a fresh `key` on each new run.
 export function ResultPanel({ result }: { result: NormalizedResult }) {
   const { t } = useI18n();
+  const announce = useAnnounce();
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [semantic, setSemantic] = useState<SemanticReport | null>(null);
   const [savedId, setSavedId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [embed, setEmbed] = useState(false);
+  const fail = (msg: string) => { setError(msg); announce(msg); };
 
   const isEasy = result.kind === "easyread";
+
+  // One announcement and one focus move per result — the thing blind users of
+  // AI chat report missing most is any way to reach the answer.
+  useEffect(() => {
+    const n = isEasy
+      ? (result.lines ?? []).length
+      : (result.outputText.trim().match(/\S+/g) ?? []).length;
+    announce(t(isEasy ? "sr_ready_lines" : "sr_ready_words", { n }));
+    headingRef.current?.focus();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   async function runSemantic() {
     setError(null);
@@ -35,7 +50,7 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
         }),
       );
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     }
   }
 
@@ -48,7 +63,7 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
     try {
       await download("export", body, format === "pdf" ? "clara.pdf" : "clara.html");
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     }
   }
 
@@ -69,12 +84,13 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
       const r = await api<{ id: number }>("reviews/create", body);
       setSavedId(r.id);
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     }
   }
 
   return (
-    <section aria-live="polite" style={{ marginTop: 20 }}>
+    <section aria-labelledby="clara-result-heading" style={{ marginTop: 20 }}>
+      <h2 id="clara-result-heading" ref={headingRef} tabIndex={-1} className="vh">{t("results_heading")}</h2>
       <ReadabilityBadges src={result.srcR} out={result.outR} />
 
       {isEasy ? (
@@ -97,7 +113,7 @@ export function ResultPanel({ result }: { result: NormalizedResult }) {
 
       <FaithfulnessCard f={result.faithfulness} />
       {semantic && <SemanticCard report={semantic} />}
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <div className="error">{error}</div>}
 
       <div className="actions">
         <button className="btn secondary" onClick={runSemantic}>{t("run_semantic")}</button>

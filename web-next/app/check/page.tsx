@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { type NormalizedResult, type VerifyResult } from "@/lib/types";
+import { useAnnounce } from "@/components/Announcer";
 import { useI18n } from "@/lib/i18n";
 import { ResultPanel } from "@/components/ResultPanel";
 
 export default function CheckPage() {
   const { t, lang } = useI18n();
+  const announce = useAnnounce();
+  const fail = (msg: string) => { setError(msg); announce(msg); };
   const [source, setSource] = useState("");
   const [output, setOutput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,7 +19,7 @@ export default function CheckPage() {
   const [runId, setRunId] = useState(0);
 
   async function check() {
-    if (!source.trim() || !output.trim()) return setError(t("fill_both"));
+    if (!source.trim() || !output.trim()) return fail(t("fill_both"));
     setBusy(true);
     setError(null);
     try {
@@ -33,7 +36,7 @@ export default function CheckPage() {
       });
       setRunId((n) => n + 1);
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -64,7 +67,7 @@ export default function CheckPage() {
         </div>
       </div>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <div className="error">{error}</div>}
       {result && <ResultPanel key={runId} result={result} />}
     </>
   );

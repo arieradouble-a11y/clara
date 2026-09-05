@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/AuthProvider";
+import { AnnouncerProvider } from "@/components/Announcer";
 import { I18nProvider } from "@/lib/i18n";
 import { Nav } from "@/components/Nav";
 
@@ -14,12 +15,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <I18nProvider>
-          <AuthProvider>
-            <Nav />
-            <main className="wrap">{children}</main>
-          </AuthProvider>
-        </I18nProvider>
+        <AnnouncerProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <Nav />
+              <main className="wrap">{children}</main>
+            </AuthProvider>
+          </I18nProvider>
+        </AnnouncerProvider>
       </body>
     </html>
   );

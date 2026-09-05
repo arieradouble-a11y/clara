@@ -121,7 +121,11 @@
     "ask_speak": "Read aloud",
     "ask_thinking": "Thinking…",
     "ask_empty": "Build or type a question first.",
-    "voice_input": "Voice input"
+    "voice_input": "Voice input",
+    "results_heading": "Result",
+    "sr_ready_words": "Ready. {n} words.",
+    "sr_ready_lines": "Answer ready. {n} lines.",
+    "enter_credentials": "Enter a username and password."
   },
   "ru": {
     "subtitle_html": "Превращает сложный текст в <strong>проверенный</strong> простой язык. Числа, даты и отрицания сверяются, чтобы ничего не потерялось и не перевернулось.",
@@ -244,7 +248,11 @@
     "ask_speak": "Озвучить",
     "ask_thinking": "Думаю…",
     "ask_empty": "Сначала соберите или напечатайте вопрос.",
-    "voice_input": "Голосовой ввод"
+    "voice_input": "Голосовой ввод",
+    "results_heading": "Результат",
+    "sr_ready_words": "Готово. Слов: {n}.",
+    "sr_ready_lines": "Ответ готов. Строк: {n}.",
+    "enter_credentials": "Введите имя пользователя и пароль."
   },
   "es": {
     "subtitle_html": "Convierte texto complejo en lenguaje claro <strong>verificado</strong>. Se comprueban números, fechas y negaciones para que nada se pierda ni se invierta en silencio.",
@@ -367,7 +375,11 @@
     "ask_speak": "Leer en voz alta",
     "ask_thinking": "Pensando…",
     "ask_empty": "Primero forma o escribe una pregunta.",
-    "voice_input": "Entrada de voz"
+    "voice_input": "Entrada de voz",
+    "results_heading": "Resultado",
+    "sr_ready_words": "Listo. {n} palabras.",
+    "sr_ready_lines": "Respuesta lista. {n} líneas.",
+    "enter_credentials": "Introduce usuario y contraseña."
   },
   "de": {
     "subtitle_html": "Verwandelt komplexen Text in <strong>geprüfte</strong> einfache Sprache. Zahlen, Daten und Verneinungen werden geprüft, damit nichts still verloren geht oder umgedreht wird.",
@@ -490,7 +502,11 @@
     "ask_speak": "Vorlesen",
     "ask_thinking": "Denke nach…",
     "ask_empty": "Bauen oder tippen Sie zuerst eine Frage.",
-    "voice_input": "Spracheingabe"
+    "voice_input": "Spracheingabe",
+    "results_heading": "Ergebnis",
+    "sr_ready_words": "Fertig. {n} Wörter.",
+    "sr_ready_lines": "Antwort fertig. {n} Zeilen.",
+    "enter_credentials": "Benutzername und Passwort eingeben."
   },
   "fr": {
     "subtitle_html": "Transforme un texte complexe en langage clair <strong>vérifié</strong>. Les nombres, les dates et les négations sont contrôlés pour que rien ne soit perdu ni inversé en silence.",
@@ -613,6 +629,10 @@
     "ask_speak": "Lire à voix haute",
     "ask_thinking": "Je réfléchis…",
     "ask_empty": "Composez ou écrivez d'abord une question.",
-    "voice_input": "Saisie vocale"
+    "voice_input": "Saisie vocale",
+    "results_heading": "Résultat",
+    "sr_ready_words": "Prêt. {n} mots.",
+    "sr_ready_lines": "Réponse prête. {n} lignes.",
+    "enter_credentials": "Saisissez un identifiant et un mot de passe."
   }
 }

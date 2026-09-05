@@ -7,11 +7,14 @@ import {
   type NormalizedResult,
   type SimplifyResult,
 } from "@/lib/types";
+import { useAnnounce } from "@/components/Announcer";
 import { useI18n } from "@/lib/i18n";
 import { ResultPanel } from "@/components/ResultPanel";
 
 export default function SimplifyPage() {
   const { t, lang } = useI18n();   // the global language selector drives content + chrome
+  const announce = useAnnounce();
+  const fail = (msg: string) => { setError(msg); announce(msg); };
   const [text, setText] = useState("");
   const [level, setLevel] = useState("plain");
   const [grade, setGrade] = useState(5);
@@ -22,7 +25,7 @@ export default function SimplifyPage() {
   const [runId, setRunId] = useState(0);
 
   async function run() {
-    if (!text.trim()) return setError(t("enter_text"));
+    if (!text.trim()) return fail(t("enter_text"));
     setBusy(true);
     setError(null);
     try {
@@ -58,7 +61,7 @@ export default function SimplifyPage() {
       setResult(next);
       setRunId((n) => n + 1);
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -71,7 +74,7 @@ export default function SimplifyPage() {
       const d = await api<{ text: string }>("ingest", { url });
       setText(d.text ?? "");
     } catch (e) {
-      setError((e as Error).message);
+      fail((e as Error).message);
     }
   }
 
@@ -84,7 +87,7 @@ export default function SimplifyPage() {
       const d = await api<{ text: string }>("ingest", { filename: file.name, content_b64 });
       setText(d.text ?? "");
     } catch (err) {
-      setError((err as Error).message);
+      fail((err as Error).message);
     } finally {
       e.target.value = "";
     }
@@ -154,7 +157,7 @@ export default function SimplifyPage() {
         <p className="hint" style={{ marginTop: 10 }}>{t("provider_hint")}</p>
       </div>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {error && <div className="error">{error}</div>}
       {result && <ResultPanel key={runId} result={result} />}
     </>
   );

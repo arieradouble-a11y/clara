@@ -5,6 +5,27 @@ not silently drop a deadline, flip a negation, or invent a number. This module
 compares the deterministic fact inventory of the source against the output and
 reports drift. Numbers and dates are hard signals; negation/obligation/condition
 deltas are review warnings for a human to confirm.
+
+SCOPE — what this does NOT do, stated plainly because the difference is easy to
+misread as a stronger guarantee than it is:
+
+    This checks that a TRANSFORMATION PRESERVED ITS INPUT. It needs a source
+    text. In an ordinary chat turn, where a model answers from its parameters,
+    there is no source and there is nothing to check against. Checking a
+    simplification against the model's own answer proves the simplification is
+    faithful to a possibly-hallucinated original. It does not check anything
+    against the world.
+
+Two consequences the callers must honour:
+
+  * Never render an affirmative "verified". `FaithfulnessReport.ok` is fine as an
+    internal boolean, but a green tick reads as "these facts are true" — and a
+    rewrite can preserve every number, date and negation while inverting the
+    sense of a clause. Surface LOSSES; let the diff be the trust surface. This
+    matters most for readers who cannot independently check a claim.
+  * Frame it as what it is: an implementation of ATAG 2.0 SC B.1.2.1
+    (preserve-or-warn after a transformation, a W3C Recommendation since 2015),
+    not a novel guarantee.
 """
 from __future__ import annotations
 

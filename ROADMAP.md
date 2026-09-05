@@ -190,6 +190,78 @@ we refuse to give up.
 - [ ] **Deeper integration**: auto-simplify streamed answers inside vendor chat
   UIs (per-site adapters); a desktop overlay (global hotkey on selected text).
 
+## Phase 8 — The conversational-stream contract
+
+Grounded in [docs/research/](docs/research/README.md): 13 evidence sweeps, 238
+findings, 66 corrected by adversarial verification. **Read the
+[design brief](docs/research/a11y-layer-design-brief.md) before starting any item
+here** — several obvious-looking ideas are refuted in it.
+
+Three findings reset the plan:
+
+- **The premise "no AI product ships vision accessibility" is false.** Claude
+  Code documents a screen-reader mode, reduced motion, colourblind themes and a
+  magnifier cursor; Google publishes an NVDA-audited Gemini VPAT. The claim that
+  survives every vendor fix is narrower: *no product ships a layer over the
+  **content*** — delivery pacing, navigable structure, a document view, or an
+  honest report of what a simplification lost. And **no W3C pattern exists for
+  streaming conversational output** at all: no APG page, no ARIA-AT test plan.
+- **The flagship is not the rewriter.** A chat interface measurably degrades
+  blind users' comprehension against a navigable document (40% fewer main topics,
+  double the error rate) *while users prefer the chat* — so satisfaction is a
+  misleading metric here. A document view changes no words, which also sidesteps
+  the Deaf verbatim objection, the null Easy Read RCT, and the paternalism
+  critique.
+- **"Free code for model operators" is the weakest available strategy.**
+  MIT-licensed Immersive Reader gets ~38k npm downloads/month against axe-core's
+  272M. Free code was never the constraint. The lever is public procurement
+  (Section 508 + FAR 39.2 today; ADA Title II WCAG 2.1 AA by 26 April 2027/2028)
+  and being the evidence nobody has produced.
+
+- [x] **Fix our own live regions first.** Clara's UIs shipped three of the
+  anti-patterns the brief warns others about: `aria-live` on visible content, a
+  second `role="alert"` region on the same page, and regions not empty at mount.
+  Rebuilt to one primed-empty announcer, zero live semantics on content, a
+  focusable heading per result. Written up, unflattering parts included, in
+  [docs/research/fixing-our-own-live-regions.md](docs/research/fixing-our-own-live-regions.md).
+- [ ] **`doc-view`** — render an answer or a whole thread as a static navigable
+  document: `<article>`, real headings, generated contents, no mutation, no live
+  regions, printable, brailleable. Highest-ranked module in the brief; small.
+- [ ] **`delivery`** — commit-policy scheduler (complete / block / sentence /
+  raw) plus a **"Stop updating"** control distinct from "Stop generating", and no
+  auto-scroll or focus movement during generation. Dynamic content is the
+  documented catastrophic failure for magnifier users, who work at 8x–45x.
+  The proxy's "emulated streaming" already implements the `complete` policy —
+  it is a feature, not the apology the docstring calls it.
+- [ ] **Formative sessions before the spec.** Delivery and announcement defaults
+  are currently **guesses**. 6–10 disabled participants, including braille and
+  magnifier users at real magnification, against the four existing products *and*
+  Clara's own UI. Questions drafted in §10 of the brief. Measure comprehension,
+  not satisfaction.
+- [ ] **`clara-stream-spec` + executable conformance suite** — a behaviour
+  contract with a test suite anyone can run against any product. A suite survives
+  a fork and stays useful after vendors fix things; a library does not.
+- [ ] **Cut the accessibility profile** from 15 fields to four
+  (`delivery`, `announce`, `reading.level`, `length`); everything presentational
+  comes from `prefers-*`. Drop `format.short_answers` (short output cut error
+  detection to 24.5%) and `format.avoid_tables`. Portable preference profiles
+  have failed four times (ISO 24751, AfA PNP, WAI-Adapt, GPII) on enforceability,
+  not design — build it small and do not make it the headline.
+
+### The objection this project must answer, not assume away
+
+> *"Every accessibility layer built on an unreliable system extends its licence
+> to operate. You are doing free compliance work for companies richer than every
+> disability organisation on earth. The reason they have not built this is not
+> that they lack a component."*
+
+The answers are real — loss reporting is a *check on* the system rather than a
+coat of paint; the buyer-first strategy targets deployments happening anyway; the
+realistic alternative is not "no AI in the benefits office" but "AI in the
+benefits office with nothing" — but they must be argued in the README, and the
+formative sessions must be allowed to answer "do not build this" and have that
+published.
+
 ## Non-goals (for now)
 
 - Replacing human review — the whole design assumes a person signs off.

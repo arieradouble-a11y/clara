@@ -12,9 +12,17 @@ aphasia after a stroke, intellectual disabilities, low literacy, or limited
 proficiency in the language. It is open source, self-hostable, and multilingual
 by design.
 
-Any model can shorten text. What makes Clara different is that it **checks the
-result did not lie**: dropped deadlines, flipped negations, and invented numbers
+Any model can shorten text. What makes Clara different is that it **checks what
+the rewrite lost**: dropped deadlines, flipped negations, and invented numbers
 are caught deterministically and flagged for a human.
+
+> **What that check is, precisely.** It verifies that a *transformation preserved
+> its input* — it needs a source text. In an ordinary chat turn, where a model
+> answers from its parameters, there is no source and nothing to check against.
+> Checking a simplification against the model's own answer proves the
+> simplification is faithful to a possibly-hallucinated original; it does not
+> check anything against the world. Clara therefore reports **losses**, never an
+> affirmative "verified". See [`clara/verify.py`](clara/verify.py).
 
 > **Status:** alpha, feature-complete through the roadmap's Phase 6: ingestion
 > (PDF/DOCX/OCR), Easy Read with pictograms, tagged-PDF export, review workflow,

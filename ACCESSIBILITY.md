@@ -36,7 +36,17 @@ accessibility tree, and keyboard testing:
   `prefers-reduced-motion`.
 - **2.4.7 Focus Visible** — a visible `:focus-visible` outline on all controls.
 - **4.1.2 Name, Role, Value** — icon buttons (e.g. a pictogram) carry an
-  `aria-label`; status messages use `role="alert"` and `aria-live="polite"`.
+  `aria-label`.
+- **4.1.3 Status Messages** — **exactly one** live region on the page, mounted
+  empty at the document root, carrying short status strings ("Ready. 41 words.")
+  and cleared between them. Result panels and error boxes hold **no** live
+  semantics: a live region over re-rendering content fires one uncoalesced
+  announcement per mutation, and two live regions on a page have undefined
+  behaviour in ARIA. Each result also gets a real heading that receives focus,
+  because announcement is a best-effort channel and must never be the only route
+  to the content. We previously got this wrong in all three ways — the audit and
+  fix are written up in
+  [docs/research/fixing-our-own-live-regions.md](docs/research/fixing-our-own-live-regions.md).
 - **Images** — every pictogram has `alt` text (its keyword); decorative "no
   picture" placeholders are not announced as images.
 
@@ -54,8 +64,14 @@ picture. Printing it yields a tagged PDF; WeasyPrint output targets **PDF/UA-1**
 - **No automated axe-core / CI gate yet.** This audit is manual (expert review +
   accessibility tree + keyboard). An automated pass in CI is future work.
 - **The Next.js app is not yet audited** to AA.
-- **No screen-reader user testing.** The audit is technical; it is not a
-  substitute for testing with people who use assistive technology — see below.
+- **No screen-reader user testing.** The audit is technical: structural checks
+  against the accessibility tree and the keyboard, not a recording of what NVDA,
+  JAWS or VoiceOver actually say, and certainly not a disabled person's judgement
+  of whether any of it helps — see below. **No refreshable braille display has
+  been tested**, which is where live-region mistakes do their worst damage.
+  Announcement wording and timing are reasoned from published findings, not
+  measured; the questions to settle them are in §10 of the
+  [design brief](docs/research/a11y-layer-design-brief.md).
 
 ## This is not the same as validation with readers
 
